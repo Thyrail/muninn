@@ -12,6 +12,8 @@ const valid = {
   S3_SECRET_ACCESS_KEY: 'secret',
   GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
   EMBEDDING_MODEL: 'gemini-embedding-2',
+  ANTHROPIC_API_KEY: 'test-key',
+  CHAT_MODEL: 'anthropic:claude-sonnet-5-5',
 };
 
 describe('apiEnvSchema', () => {

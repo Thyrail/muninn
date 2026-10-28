@@ -1,4 +1,6 @@
 export * from './auth.js';
+export * from './chat.js';
+export * from './citations.js';
 export * from './env.js';
 export * from './limits.js';
 export * from './notebooks.js';

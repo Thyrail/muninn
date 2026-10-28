@@ -14,6 +14,13 @@ export const LIMITS = {
   /** URL sources: fetch timeout and max response size. */
   urlFetchTimeoutMs: 10_000,
   urlMaxResponseBytes: 5 * 1024 * 1024,
+
+  /** Chat: max question length, retrieval candidates per method, chunks in the prompt. */
+  chatMaxQuestionChars: 4000,
+  chatRetrievalTopK: 20,
+  chatContextChunks: 8,
+  /** Previous messages sent to the model as conversation context. */
+  chatHistoryMessages: 6,
 } as const;
 
 /** Fixed-window rate limits, enforced via Redis. */

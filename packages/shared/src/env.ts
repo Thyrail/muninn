@@ -47,6 +47,10 @@ export const apiEnvSchema = z.object({
   EMBEDDING_DIM: z.coerce.number().int().positive().max(2000).default(768),
   /** `provider:model` for source summaries, e.g. `google:gemini-flash-latest`. Optional. */
   SUMMARY_MODEL: modelRef.optional(),
+
+  ANTHROPIC_API_KEY: z.string().min(1),
+  /** `provider:model` for chat answers, e.g. `anthropic:claude-sonnet-5-5`. */
+  CHAT_MODEL: modelRef,
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
