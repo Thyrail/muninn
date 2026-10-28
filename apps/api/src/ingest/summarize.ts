@@ -1,4 +1,5 @@
 import { generateText, type LanguageModel } from 'ai';
+import { escapeAttribute, neutralizeTag } from '../common/prompt-text.js';
 
 /** Upper bound of source text sent to the summary model. */
 const SUMMARY_INPUT_CHARS = 24_000;
@@ -12,7 +13,7 @@ export async function summarize(model: LanguageModel, title: string, text: strin
   const { text: summary } = await generateText({
     model,
     system: SYSTEM_PROMPT,
-    prompt: `<document title="${escapeAttribute(title)}">\n${text.slice(0, SUMMARY_INPUT_CHARS)}\n</document>`,
+    prompt: `<document title="${escapeAttribute(title)}">\n${neutralizeTag(text.slice(0, SUMMARY_INPUT_CHARS), 'document')}\n</document>`,
     maxOutputTokens: 1024,
     maxRetries: 2,
     // Gemini 3 counts reasoning tokens against maxOutputTokens; a summary needs no reasoning.
@@ -20,8 +21,4 @@ export async function summarize(model: LanguageModel, title: string, text: strin
     providerOptions: { google: { thinkingConfig: { thinkingLevel: 'minimal' } } },
   });
   return summary.trim();
-}
-
-function escapeAttribute(value: string): string {
-  return value.replace(/[<>"&]/g, (char) => `&#${char.charCodeAt(0)};`);
 }

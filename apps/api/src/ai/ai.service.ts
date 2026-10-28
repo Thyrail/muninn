@@ -1,3 +1,4 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
 import { Inject, Injectable } from '@nestjs/common';
 import { createProviderRegistry, embedMany, type LanguageModel } from 'ai';
@@ -15,16 +16,23 @@ type EmbeddingTask = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY';
 @Injectable()
 export class AiService {
   private readonly google: ReturnType<typeof createGoogleGenerativeAI>;
-  private readonly registry: ReturnType<typeof createRegistry>;
+  private readonly registry: ReturnType<typeof createProviderRegistry>;
 
   constructor(@Inject(API_ENV) private readonly env: ApiEnv) {
     this.google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
-    this.registry = createRegistry(this.google);
+    this.registry = createProviderRegistry({
+      google: this.google,
+      anthropic: createAnthropic({ apiKey: env.ANTHROPIC_API_KEY }),
+    });
   }
 
   /** Resolves a `provider:model` reference (validated by the env schema). */
   languageModel(ref: string): LanguageModel {
     return this.registry.languageModel(ref as `google:${string}`);
+  }
+
+  get chatModel(): LanguageModel {
+    return this.languageModel(this.env.CHAT_MODEL);
   }
 
   get summaryModel(): LanguageModel | null {
@@ -64,8 +72,4 @@ export class AiService {
     }
     return vectors;
   }
-}
-
-function createRegistry(google: ReturnType<typeof createGoogleGenerativeAI>) {
-  return createProviderRegistry({ google });
 }

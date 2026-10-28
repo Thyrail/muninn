@@ -14,6 +14,7 @@
     "dev:worker": "sh -c 'until [ -f dist/worker.js ]; do sleep 1; done; exec node --watch --env-file=../../.env dist/worker.js'"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.91",
     "@ai-sdk/google": "^4.0.107",
     "@aws-sdk/client-s3": "^3.1158.0",
     "@mozilla/readability": "^0.6.0",
