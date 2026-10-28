@@ -20,6 +20,11 @@
     },
     "test": {
       "dependsOn": ["^build"]
+    },
+    "dev:worker": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
     }
   }
 }

@@ -1,21 +1,14 @@
-// Background worker entry point (BullMQ consumers for ingestion and studio jobs from phase 2 on).
-// Shares the API image; started with `node dist/worker.js`.
+// Background worker entry point (BullMQ consumers). Shares the API image; `node dist/worker.js`.
 import 'reflect-metadata';
-import { pino } from 'pino';
-import { loadEnv } from './config/env.js';
+import { NestFactory } from '@nestjs/core';
+import { Logger } from 'nestjs-pino';
+import { WorkerModule } from './worker.module.js';
 
-const env = loadEnv();
-const logger = pino({ level: env.LOG_LEVEL, base: { service: 'worker' } });
-
-logger.info('Worker started, no queues registered yet');
-
-const keepAlive = setInterval(() => undefined, 60_000);
-
-function shutdown(signal: NodeJS.Signals): void {
-  logger.info({ signal }, 'Worker shutting down');
-  clearInterval(keepAlive);
-  process.exit(0);
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.createApplicationContext(WorkerModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+  app.enableShutdownHooks();
+  await app.init();
 }
 
-process.once('SIGTERM', shutdown);
-process.once('SIGINT', shutdown);
+void bootstrap();
