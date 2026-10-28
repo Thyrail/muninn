@@ -4,9 +4,15 @@ packages:
   - scripts/*
 
 onlyBuiltDependencies:
-  - "@prisma/engines"
-  - "@swc/core"
+  - '@prisma/engines'
+  - '@swc/core'
   - esbuild
   - prisma
   - sharp
   - unrs-resolver
+
+# Peers are declared explicitly; auto-install would pull optional framework peers
+# (e.g. next, react via better-auth) into the API image.
+autoInstallPeers: false
+# Keep per-app peer resolution so the API does not share the web variant of better-auth.
+dedupePeerDependents: false

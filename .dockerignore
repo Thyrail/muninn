@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+packages/db/src/generated
+.git
+.github
+.env
+.env.*
+!infra/.env.example
+docs
+scripts/eval/results.md

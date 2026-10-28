@@ -1,0 +1,148 @@
+# Production stack. On the server: ~/docker/muninn/docker-compose.yml + .env (see .env.example).
+# Networks:
+#   intern  internal only: Postgres, Redis, S3 are never reachable from outside or from Traefik.
+#   egress  outbound internet for the worker (LLM APIs, URL sources).
+#   proxy   external Traefik network: only web and api join it.
+# Containers are addressed by unique container names (muninn-*), never by short service names,
+# so nothing collides with other stacks on the shared proxy network.
+name: muninn
+
+x-app: &app
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    NODE_ENV: production
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: muninn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [intern]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    container_name: muninn-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-data:/data
+    networks: [intern]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 128m
+
+  s3:
+    image: chrislusf/seaweedfs:4.51
+    container_name: muninn-s3
+    restart: unless-stopped
+    command: ['server', '-s3', '-dir=/data', '-ip.bind=0.0.0.0']
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - s3-data:/data
+    networks: [intern]
+    mem_limit: 256m
+
+  # One-shot: apply migrations and seed the demo user, then exit. App containers wait for it.
+  migrate:
+    <<: *app
+    image: ghcr.io/${IMAGE_OWNER}/muninn-api:${IMAGE_TAG:-latest}
+    container_name: muninn-migrate
+    restart: 'no'
+    working_dir: /app/node_modules/@muninn/db
+    command: ['sh', '-c', './node_modules/.bin/prisma migrate deploy && node dist/seed.js']
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [intern]
+
+  api:
+    <<: *app
+    image: ghcr.io/${IMAGE_OWNER}/muninn-api:${IMAGE_TAG:-latest}
+    container_name: muninn-api
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [intern, proxy]
+    mem_limit: 512m
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.muninn-api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.muninn-api.entrypoints=websecure
+      - traefik.http.routers.muninn-api.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.routers.muninn-api.priority=100
+      - traefik.http.services.muninn-api.loadbalancer.server.port=4000
+
+  worker:
+    <<: *app
+    image: ghcr.io/${IMAGE_OWNER}/muninn-api:${IMAGE_TAG:-latest}
+    container_name: muninn-worker
+    command: ['node', 'dist/worker.js']
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [intern, egress]
+    mem_limit: 768m
+
+  web:
+    <<: *app
+    image: ghcr.io/${IMAGE_OWNER}/muninn-web:${IMAGE_TAG:-latest}
+    container_name: muninn-web
+    environment:
+      NODE_ENV: production
+      API_INTERNAL_URL: http://muninn-api:4000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [intern, proxy]
+    mem_limit: 384m
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.muninn-web.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.muninn-web.entrypoints=websecure
+      - traefik.http.routers.muninn-web.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.routers.muninn-web.priority=10
+      - traefik.http.services.muninn-web.loadbalancer.server.port=3000
+
+volumes:
+  postgres-data:
+  redis-data:
+  s3-data:
+
+networks:
+  intern:
+    internal: true
+  egress:
+  proxy:
+    name: ${TRAEFIK_NETWORK}
+    external: true
