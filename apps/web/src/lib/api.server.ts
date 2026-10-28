@@ -1,6 +1,7 @@
 import 'server-only';
 import {
   publicConfigSchema,
+  type ChatMessageDto,
   type NotebookSummary,
   type PublicConfig,
   type SourceDto,
@@ -59,4 +60,8 @@ export async function getNotebook(id: string): Promise<NotebookSummary | null> {
 
 export function getSources(notebookId: string): Promise<SourceDto[]> {
   return getJson(`/notebooks/${encodeURIComponent(notebookId)}/sources`);
+}
+
+export function getChatMessages(notebookId: string): Promise<ChatMessageDto[]> {
+  return getJson(`/notebooks/${encodeURIComponent(notebookId)}/messages`);
 }

@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { errorText } from '@/lib/api-client';
 import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -45,7 +46,15 @@ function sourceMeta(source: SourceDto): string | null {
   return null;
 }
 
-export function SourceItem({ source }: { source: SourceDto }) {
+export function SourceItem({
+  source,
+  selected,
+  onSelectedChange,
+}: {
+  source: SourceDto;
+  selected: boolean;
+  onSelectedChange: (selected: boolean) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const retry = useRetrySource(source.notebookId);
   const remove = useDeleteSource(source.notebookId);
@@ -55,12 +64,22 @@ export function SourceItem({ source }: { source: SourceDto }) {
   return (
     <li className="rounded-lg border bg-card p-3">
       <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        {source.status === 'READY' ? (
+          <Checkbox
+            className="mt-0.5"
+            checked={selected}
+            onCheckedChange={(checked) => onSelectedChange(checked === true)}
+            aria-label={`${source.title} für den Chat verwenden`}
+          />
+        ) : (
+          <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium" title={source.title}>
             {source.title}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {source.status === 'READY' && <Icon className="size-3.5 shrink-0" aria-hidden />}
             <SourceStatusBadge status={source.status} />
             {meta && <span className="truncate">{meta}</span>}
           </div>
