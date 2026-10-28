@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { LIMITS } from '@muninn/shared';
 import type { Response } from 'express';
 
 export interface ErrorBody {
@@ -15,6 +16,11 @@ export interface ErrorBody {
 }
 
 /** Maps any thrown value to a stable JSON error body. Internal details never reach the client. */
+/** German messages for statuses whose default text comes from third-party middleware. */
+const MESSAGE_OVERRIDES: Partial<Record<number, string>> = {
+  [HttpStatus.PAYLOAD_TOO_LARGE]: `Die Datei ist zu groß. Erlaubt sind höchstens ${LIMITS.maxFileSizeBytes / 1024 / 1024} MB.`,
+};
+
 export function toErrorBody(exception: unknown): ErrorBody {
   if (exception instanceof HttpException) {
     const statusCode = exception.getStatus();
@@ -23,7 +29,11 @@ export function toErrorBody(exception: unknown): ErrorBody {
       typeof response === 'string'
         ? response
         : ((response as { message?: string | string[] }).message ?? exception.message);
-    return { statusCode, error: HttpStatus[statusCode] ?? 'Error', message };
+    return {
+      statusCode,
+      error: HttpStatus[statusCode] ?? 'Error',
+      message: MESSAGE_OVERRIDES[statusCode] ?? message,
+    };
   }
   return {
     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

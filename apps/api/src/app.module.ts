@@ -9,6 +9,11 @@ import { HealthController } from './health/health.controller.js';
 import { MeController } from './me/me.controller.js';
 import { PRISMA, PrismaModule } from './prisma/prisma.module.js';
 import { loggerOptions } from './logger.js';
+import { AiModule } from './ai/ai.module.js';
+import { NotebooksModule } from './notebooks/notebooks.module.js';
+import { QueueModule } from './queue/queue.module.js';
+import { SourcesModule } from './sources/sources.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 @Module({
   imports: [
@@ -20,8 +25,17 @@ import { loggerOptions } from './logger.js';
     PrismaModule,
     AuthModule.forRootAsync({
       inject: [PRISMA, API_ENV],
-      useFactory: (prisma: PrismaClient, env: ApiEnv) => ({ auth: createAuth(prisma, env) }),
+      useFactory: (prisma: PrismaClient, env: ApiEnv) => ({
+        auth: createAuth(prisma, env),
+        // Pasted text sources can be up to 200k characters (~400 KB as UTF-8 JSON).
+        bodyParser: { json: { limit: '1mb' } },
+      }),
     }),
+    StorageModule,
+    QueueModule,
+    AiModule,
+    NotebooksModule,
+    SourcesModule,
   ],
   controllers: [HealthController, MeController],
 })

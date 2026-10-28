@@ -1,4 +1,9 @@
-import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  PayloadTooLargeException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { toErrorBody } from './all-exceptions.filter.js';
 
@@ -15,6 +20,12 @@ describe('toErrorBody', () => {
     const body = toErrorBody(new BadRequestException(['title: Too short']));
     expect(body.statusCode).toBe(400);
     expect(body.message).toEqual(['title: Too short']);
+  });
+
+  it('replaces English middleware messages for oversized uploads', () => {
+    const body = toErrorBody(new PayloadTooLargeException('File too large'));
+    expect(body.statusCode).toBe(413);
+    expect(body.message).toMatch(/20 MB/);
   });
 
   it('maps auth guard rejections to 401', () => {
