@@ -76,3 +76,24 @@ made during implementation.
 - **Decision:** Chat answers use Anthropic Claude. Embeddings use Gemini (`gemini-embedding-2`, 768 dimensions, task types `RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY`). Source summaries use Gemini Flash (`SUMMARY_MODEL=google:gemini-3.5-flash`, a pinned version instead of a `latest` alias). All model IDs are environment variables; text models are resolved as `provider:model` through the AI SDK provider registry, so switching a task to another provider is a configuration change.
 - **Alternatives:** One provider for everything; Claude for summaries.
 - **Rationale:** Best answer quality where it matters most, cheap and fast models for background work, and no code change to swap models.
+
+## ADR-011: Character-based chunking at sentence boundaries
+
+- **Context:** The PRD asks for ~800-token chunks with 100 tokens overlap, split at paragraph and sentence boundaries, with page numbers and character offsets for citation highlighting.
+- **Decision:** A pure function (`chunkText`) cuts the text into sentences (remembering paragraph starts), fills chunks greedily up to 3,200 characters, prefers ending at a paragraph break once a chunk is 60 % full, and repeats trailing sentences that fit into a 400-character overlap window. Token counts are estimated as `ceil(chars / 4)`. Chunk content is always an exact slice of the source text, and the page is derived from the chunk start via the PDF page offsets.
+- **Alternatives:** A real tokenizer (tiktoken or the provider's token counter); LangChain text splitters.
+- **Rationale:** No provider-specific tokenizer exists for Gemini embeddings offline, and the 4-characters heuristic is accurate enough for sizing. Exact character offsets matter more than exact token counts, because the source viewer highlights citations by offset. Unit tests cover boundaries, overlap, page mapping and degenerate input.
+
+## ADR-012: Worker as a NestJS application context with BullMQ
+
+- **Context:** Ingestion (download, PDF parsing, embeddings, summary) is slow and must not block HTTP requests; it needs the same configuration, Prisma client, storage and AI services as the API.
+- **Decision:** The worker is `NestFactory.createApplicationContext(WorkerModule)` in the API image (`node dist/worker.js`). The API enqueues `{ sourceId }` with `jobId = sourceId`, 3 attempts and exponential backoff. The processor writes all chunks of a source in one transaction after deleting previous ones, so retries are idempotent. Only the last failed attempt (or a non-retryable `IngestError`, e.g. a broken PDF or blocked URL) marks the source `FAILED` with a user-facing German message; summaries are best effort and never fail a source.
+- **Alternatives:** Processing inside the API request; `@nestjs/bullmq` decorators; a separate worker package.
+- **Rationale:** One codebase and image, full dependency injection, and failure semantics that keep the UI honest (PROCESSING while retrying, a clear error at the end).
+
+## ADR-013: SSRF protection brought forward
+
+- **Context:** URL sources make the server fetch arbitrary user-supplied addresses. The PRD schedules SSRF protection for the hardening phase, but URL sources go live with ingestion.
+- **Decision:** Only http(s); IP literals are checked before connecting; all other hosts resolve through a guarded DNS lookup (undici `Agent` with a custom `lookup`) that rejects loopback, private, link-local/metadata, CGNAT, multicast and reserved ranges for IPv4 and IPv6 on every connection, which also covers redirects and DNS rebinding. Redirects are followed manually (max. 3), responses must be HTML, with a 10 s timeout and a 5 MB cap. The worker runs in a network without access to internal services anyway.
+- **Alternatives:** Waiting for the hardening phase; an outbound proxy.
+- **Rationale:** A public demo must not expose an SSRF hole for days. The guard is small, unit-tested and independent of the rest of the pipeline.

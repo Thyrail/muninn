@@ -3,7 +3,7 @@
  *
  * Pure function: chunk boundaries are character offsets into the original text, so
  * `content === text.slice(charStart, charEnd)` and the source viewer can highlight citations
- * exactly. Sizes are measured in characters with ~4 characters per token (see ADR-012).
+ * exactly. Sizes are measured in characters with ~4 characters per token (see ADR-011).
  *
  * The text is cut into sentences (paragraph starts are remembered). Chunks are filled greedily
  * with whole sentences, preferably ending at a paragraph break, and consecutive chunks share

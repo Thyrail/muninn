@@ -39,6 +39,40 @@ flowchart LR
   worker --> llm
 ```
 
+## Ingestion
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant W as web
+  participant A as api
+  participant S3 as S3
+  participant Q as Redis (BullMQ)
+  participant K as worker
+  participant DB as Postgres
+  participant G as Gemini
+
+  U->>W: Add PDF / URL / text
+  W->>A: POST /api/notebooks/:id/sources(/file)
+  A->>A: ownership, limits, PDF magic bytes
+  A->>S3: store PDF
+  A->>DB: source (PENDING)
+  A->>Q: enqueue { sourceId }
+  A-->>W: 201 source
+  loop every 2 s while PENDING / PROCESSING
+    W->>A: GET /api/notebooks/:id/sources
+  end
+  Q->>K: job
+  K->>DB: PROCESSING
+  K->>S3: load PDF (or fetch URL via SSRF guard)
+  K->>K: extract text + page offsets, chunk
+  K->>G: embed chunks (batches of 100, 768 dims)
+  K->>DB: replace chunks + vectors (one transaction)
+  K->>G: short summary (Gemini Flash, optional)
+  K->>DB: READY (or FAILED with message)
+```
+
 ## Key points
 
 - **Same origin.** Traefik routes `/api/*` to NestJS and everything else to Next.js, so cookies
