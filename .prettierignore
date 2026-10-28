@@ -5,3 +5,7 @@ dist
 coverage
 packages/db/src/generated
 packages/db/prisma/migrations
+# Briefing documents, kept verbatim
+CLAUDE.md
+docs/PRD.md
+apps/web/AGENTS.md
