@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "db:generate": "prisma generate",
