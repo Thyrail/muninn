@@ -5,6 +5,13 @@ const valid = {
   DATABASE_URL: 'postgresql://muninn:muninn@localhost:5432/muninn',
   BETTER_AUTH_SECRET: 'x'.repeat(32),
   BETTER_AUTH_URL: 'http://localhost:3000',
+  REDIS_URL: 'redis://localhost:6379',
+  S3_ENDPOINT: 'http://localhost:8333',
+  S3_BUCKET: 'muninn',
+  S3_ACCESS_KEY_ID: 'muninn',
+  S3_SECRET_ACCESS_KEY: 'secret',
+  GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
+  EMBEDDING_MODEL: 'gemini-embedding-2',
 };
 
 describe('apiEnvSchema', () => {
@@ -37,6 +44,16 @@ describe('apiEnvSchema', () => {
     expect(message).toMatch(/BETTER_AUTH_SECRET/);
     expect(message).toMatch(/BETTER_AUTH_URL/);
     expect(message).not.toContain(secret);
+  });
+
+  it('validates provider:model references', () => {
+    expect(
+      parseEnv(apiEnvSchema, { ...valid, SUMMARY_MODEL: 'google:gemini-flash-latest' })
+        .SUMMARY_MODEL,
+    ).toBe('google:gemini-flash-latest');
+    expect(() => parseEnv(apiEnvSchema, { ...valid, SUMMARY_MODEL: 'gpt-4' })).toThrow(
+      /SUMMARY_MODEL/,
+    );
   });
 
   it('caps the embedding dimension at the HNSW limit', () => {
