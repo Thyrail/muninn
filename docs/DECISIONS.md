@@ -1,6 +1,8 @@
 # Architecture Decision Log
 
 Short records of non-trivial decisions: context, decision, alternatives, rationale.
+Entries marked **(owner)** were decided by the project owner; the others are technical decisions
+made during implementation.
 
 ---
 
@@ -32,11 +34,11 @@ Short records of non-trivial decisions: context, decision, alternatives, rationa
 - **Alternatives:** Prisma 8 RC; Drizzle.
 - **Rationale:** Better Auth's Prisma adapter supports Prisma ≤ 7, and an RC is not a base for a live demo. pgvector columns are modelled as `Unsupported("vector(768)")` and queried with typed raw SQL.
 
-## ADR-005: Hosting on jupiter
+## ADR-005: Hosting on a dedicated server (owner)
 
-- **Context:** saturn (existing demo host) had ~1.2 GB free RAM and no swap; Muninn runs web, api, worker, Postgres, Redis and MinIO plus PDF parsing and ffmpeg peaks.
-- **Decision:** Deploy to the second Hetzner host (jupiter), which already runs Traefik with Let's Encrypt.
-- **Alternatives:** saturn with added swap.
+- **Context:** The existing shared host had ~1.2 GB free RAM and no swap; Muninn runs web, api, worker, Postgres, Redis and S3 plus PDF parsing and ffmpeg peaks.
+- **Decision:** Deploy to a separate Hetzner host that only runs Traefik (Let's Encrypt) and Muninn.
+- **Alternatives:** The shared host with added swap.
 - **Rationale:** Enough headroom without risking existing sites. Databases live in an internal Docker network only; just `web` and `api` join the Traefik network.
 
 ## ADR-006: SeaweedFS as S3-compatible storage instead of MinIO
@@ -53,3 +55,24 @@ Short records of non-trivial decisions: context, decision, alternatives, rationa
 - **Embedding dimension:** 768 (below the HNSW limit of 2000; Gemini embeddings support reduced `outputDimensionality`). The API compares `EMBEDDING_DIM` with the column's dimension at startup and refuses to boot on mismatch.
 - **Alternatives:** `db push` without migrations; Drizzle (native pgvector support); a separate vector store.
 - **Rationale:** Keeps Prisma's type safety for 95 % of queries and one Postgres for everything, while making the unsupported parts explicit and guarded.
+
+## ADR-008: Personal domain and registry (owner)
+
+- **Context:** Muninn is presented as a personal project.
+- **Decision:** Public domain `muninn.thyrail.de`, public GitHub repository `Thyrail/muninn`, images in GHCR under the same owner. The domain is configuration only (`DOMAIN`, `BETTER_AUTH_URL`).
+- **Alternatives:** A subdomain of another brand; Docker Hub.
+- **Rationale:** One consistent identity across code, images and the live demo; GHCR keeps images next to the source and needs no extra credentials in CI.
+
+## ADR-009: Public demo access (owner)
+
+- **Context:** Reviewers need instant access, while every request costs LLM tokens.
+- **Decision:** A seeded demo account with a one-click login on the sign-in page (`SHOW_DEMO_LOGIN`). Public sign-up is disabled in production (`ALLOW_SIGNUP=false`) and can be switched on per environment.
+- **Alternatives:** Open registration; credentials only in the README.
+- **Rationale:** Zero-friction demo without exposing the token budget to anonymous sign-ups. Rate limits and a daily budget follow in the hardening phase.
+
+## ADR-010: Model split per task (owner)
+
+- **Context:** Chat quality, embedding cost and summary latency have different requirements.
+- **Decision:** Chat answers use Anthropic Claude. Embeddings use Gemini (`gemini-embedding-2`, 768 dimensions, task types `RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY`). Source summaries use Gemini Flash (`SUMMARY_MODEL=google:gemini-3.5-flash`, a pinned version instead of a `latest` alias). All model IDs are environment variables; text models are resolved as `provider:model` through the AI SDK provider registry, so switching a task to another provider is a configuration change.
+- **Alternatives:** One provider for everything; Claude for summaries.
+- **Rationale:** Best answer quality where it matters most, cheap and fast models for background work, and no code change to swap models.
