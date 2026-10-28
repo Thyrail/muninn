@@ -38,3 +38,18 @@ Short records of non-trivial decisions: context, decision, alternatives, rationa
 - **Decision:** Deploy to the second Hetzner host (jupiter), which already runs Traefik with Let's Encrypt.
 - **Alternatives:** saturn with added swap.
 - **Rationale:** Enough headroom without risking existing sites. Databases live in an internal Docker network only; just `web` and `api` join the Traefik network.
+
+## ADR-006: SeaweedFS as S3-compatible storage instead of MinIO
+
+- **Context:** The stack calls for S3-compatible storage (MinIO locally). MinIO stopped publishing community container images; `minio/mc` is no longer pullable.
+- **Decision:** Run SeaweedFS (`chrislusf/seaweedfs`, pinned tag) with its S3 gateway locally and in production. The app only talks to it via `@aws-sdk/client-s3`, so any S3 provider can be swapped in through `S3_*` variables.
+- **Alternatives:** Pinning an old, unmaintained MinIO image; a managed S3 bucket.
+- **Rationale:** Maintained, small footprint, already proven on the same infrastructure. No vendor lock-in because the code depends on the S3 API only.
+
+## ADR-007: pgvector and full-text columns next to Prisma
+
+- **Context:** Prisma models neither pgvector indexes nor generated columns. A naive `prisma migrate dev` wants to drop the HNSW index and the `GENERATED` expression on `chunk.tsv`.
+- **Decision:** `embedding vector(768)` and `tsv tsvector` are `Unsupported(...)` fields. The generated column and the HNSW index (`vector_cosine_ops`) live in hand-written SQL in the init migration; the GIN index is declared in the schema (`@@index([tsv], type: Gin)`). New migrations are created only via `pnpm db:migrate:new <name>`, which strips the two known false-positive statements and deletes migrations that end up empty. Similarity search uses typed raw SQL.
+- **Embedding dimension:** 768 (below the HNSW limit of 2000; Gemini embeddings support reduced `outputDimensionality`). The API compares `EMBEDDING_DIM` with the column's dimension at startup and refuses to boot on mismatch.
+- **Alternatives:** `db push` without migrations; Drizzle (native pgvector support); a separate vector store.
+- **Rationale:** Keeps Prisma's type safety for 95 % of queries and one Postgres for everything, while making the unsupported parts explicit and guarded.

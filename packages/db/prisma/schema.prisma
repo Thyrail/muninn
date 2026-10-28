@@ -1,0 +1,208 @@
+// Muninn data model (PRD §4).
+// pgvector and full-text columns are `Unsupported` in Prisma; their indexes and the generated
+// tsvector column are created in hand-written SQL inside the migrations.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+  previewFeatures     = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Better Auth core schema (user, session, account, verification)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  notebooks     Notebook[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+enum SourceType {
+  PDF
+  URL
+  TEXT
+  YOUTUBE
+}
+
+/// Lifecycle of background jobs (source ingestion, studio generation).
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum StudioOutputType {
+  BRIEFING
+  FAQ
+  STUDY_GUIDE
+  AUDIO
+  MINDMAP
+}
+
+model Notebook {
+  id            String         @id @default(uuid(7))
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sources       Source[]
+  chunks        Chunk[]
+  messages      ChatMessage[]
+  studioOutputs StudioOutput[]
+
+  @@index([userId, updatedAt])
+  @@map("notebook")
+}
+
+model Source {
+  id            String           @id @default(uuid(7))
+  notebookId    String
+  notebook      Notebook         @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  type          SourceType
+  title         String
+  originalUrl   String?
+  storageKey    String?
+  status        ProcessingStatus @default(PENDING)
+  error         String?
+  extractedText String?
+  /// Character offsets where each PDF page starts in `extractedText` (index 0 = page 1).
+  pageOffsets   Int[]
+  summary       String?
+  pageCount     Int?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  chunks        Chunk[]
+
+  @@index([notebookId, createdAt])
+  @@map("source")
+}
+
+model Chunk {
+  id         String                       @id @default(uuid(7))
+  sourceId   String
+  source     Source                       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  notebookId String
+  notebook   Notebook                     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  index      Int
+  content    String
+  page       Int?
+  charStart  Int
+  charEnd    Int
+  tokenCount Int
+  /// Written via raw SQL; dimension must match EMBEDDING_DIM.
+  embedding  Unsupported("vector(768)")?
+  /// Generated column: to_tsvector('simple', content).
+  tsv        Unsupported("tsvector")?
+
+  @@unique([sourceId, index])
+  @@index([notebookId])
+  @@index([tsv], map: "chunk_tsv_gin_idx", type: Gin)
+  @@map("chunk")
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid(7))
+  notebookId String
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  role       ChatRole
+  content    String
+  /// Resolved citations: [{ n, chunkId, sourceId, page, charStart, charEnd }].
+  citations  Json     @default("[]")
+  createdAt  DateTime @default(now())
+
+  @@index([notebookId, createdAt])
+  @@map("chat_message")
+}
+
+model StudioOutput {
+  id              String           @id @default(uuid(7))
+  notebookId      String
+  notebook        Notebook         @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  type            StudioOutputType
+  status          ProcessingStatus @default(PENDING)
+  /// Markdown for documents, JSON for mind maps.
+  content         String?
+  audioStorageKey String?
+  durationSec     Int?
+  error           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([notebookId, createdAt])
+  @@map("studio_output")
+}
