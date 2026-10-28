@@ -73,6 +73,40 @@ sequenceDiagram
   K->>DB: READY (or FAILED with message)
 ```
 
+## Chat
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant W as web (useChat)
+  participant A as api
+  participant R as Redis
+  participant DB as Postgres
+  participant G as Gemini
+  participant C as Claude
+
+  U->>W: Question (selected sources)
+  W->>A: POST /api/notebooks/:id/chat { text, sourceIds }
+  A->>A: ownership, sources READY
+  A->>R: rate limit (30 / hour)
+  A->>DB: store question, load last 6 messages
+  A->>G: embed question + previous question
+  par vector
+    A->>DB: top 20 by cosine (HNSW, filtered)
+  and full text
+    A->>DB: top 20 by ts_rank_cd (OR query)
+  end
+  A->>A: RRF, top 8 passages
+  A-->>W: data-citations (all 8 candidates)
+  A->>C: system prompt + history + numbered sources
+  C-->>A: tokens
+  A-->>W: text deltas (rendered with badges)
+  A->>A: parseCitations: drop invalid [n]
+  A-->>W: data-citations (cited passages only)
+  A->>DB: store cleaned answer + citations
+```
+
 ## Key points
 
 - **Same origin.** Traefik routes `/api/*` to NestJS and everything else to Next.js, so cookies
@@ -84,7 +118,7 @@ sequenceDiagram
   and `api` join the Traefik network; the worker gets a separate egress network for LLM calls.
 - **Shared contracts.** `@muninn/shared` holds Zod schemas, limits and env validation used by
   both apps; `@muninn/db` holds the Prisma schema, migrations and client.
-- **Retrieval (phase 3).** Hybrid search: pgvector cosine (HNSW) plus Postgres full-text
-  (`websearch_to_tsquery`), merged with reciprocal rank fusion.
+- **Retrieval.** Hybrid search: pgvector cosine (HNSW) plus Postgres full-text (OR query of the
+  meaningful words), merged with reciprocal rank fusion (ADR-015). Citations follow ADR-016.
 
 See [DECISIONS.md](DECISIONS.md) for the reasoning behind each choice.

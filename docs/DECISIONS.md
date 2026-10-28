@@ -97,3 +97,38 @@ made during implementation.
 - **Decision:** Only http(s); IP literals are checked before connecting; all other hosts resolve through a guarded DNS lookup (undici `Agent` with a custom `lookup`) that rejects loopback, private, link-local/metadata, CGNAT, multicast and reserved ranges for IPv4 and IPv6 on every connection, which also covers redirects and DNS rebinding. Redirects are followed manually (max. 3), responses must be HTML, with a 10 s timeout and a 5 MB cap. The worker runs in a network without access to internal services anyway.
 - **Alternatives:** Waiting for the hardening phase; an outbound proxy.
 - **Rationale:** A public demo must not expose an SSRF hole for days. The guard is small, unit-tested and independent of the rest of the pipeline.
+
+## ADR-014: Claude Sonnet 5.5 for chat at low effort (owner)
+
+- **Context:** Chat answers must cite sources reliably and stream quickly; every question costs money, and the demo is public.
+- **Decision:** `CHAT_MODEL=anthropic:claude-sonnet-5-5` with `effort: low` and at most 2,048 output tokens. The API key belongs to a dedicated workspace with a monthly spend limit and auto-reload switched off.
+- **Alternatives:** Claude Opus 5.5 (twice the price, no measurable gain for answering from given passages); Claude Haiku 5.5 (much cheaper, but less reliable `[n]` citations); Gemini for everything.
+- **Rationale:** Citation quality is what reviewers look at first. Sonnet answers in about 4 seconds with correct citations at roughly 3 to 4 cents per question; low effort is enough because the passages already contain the answer. The model stays a configuration value.
+
+## ADR-015: Hybrid retrieval with RRF and query context without LLM rewriting
+
+- **Context:** PRD §6 asks for vector plus full-text search fused with Reciprocal Rank Fusion, filtered to the notebook and the selected sources, with recent messages flowing into the query.
+- **Decision:** Two SQL queries (top 20 each): pgvector cosine distance with `hnsw.iterative_scan = strict_order`, so the HNSW index keeps scanning until enough rows pass the notebook/source filter, and full-text search with `ts_rank_cd`. They are fused with RRF (`k = 60`) into the final top 8 (pure function, unit-tested). Full-text uses an **OR** query of the meaningful words (stopwords removed) instead of `websearch_to_tsquery`, which combines words with AND and rarely matches a natural question. A follow-up question is searched together with the previous user question; there is no LLM query rewriting.
+- **Alternatives:** Vector search only; `websearch_to_tsquery` as written in the PRD; LLM rewriting of the question before retrieval.
+- **Rationale:** Full text catches names, numbers and rare terms that embeddings blur; OR plus ranking makes it actually contribute. Prepending the previous question resolves most follow-ups ("and how big are they?") without an extra model call, which would add latency and cost to every question.
+
+## ADR-016: Citation protocol
+
+- **Context:** Answers stream token by token, but only at the end is it known which `[n]` the model used, and models occasionally cite numbers that do not exist.
+- **Decision:** Passages are numbered 1 to n in the prompt as `<source id="n">` blocks; source content is escaped so it cannot close its block. Before the text streams, the API sends a `data-citations` part with all candidate passages (title, page, offsets, text), so badges have previews while streaming. At the end, a pure parser (`parseCitations`, shared by API and web, unit-tested) removes invalid numbers from the text, the same data part is replaced with only the cited passages, and the cleaned text plus resolved citations are stored. The web renders markers through a remark plugin as badges and hides numbers without a passage, so invalid citations never appear, not even mid-stream. Numbers are not renumbered.
+- **Alternatives:** Anthropic's native citations API (provider-specific, and its output format does not map to our chunk offsets); parsing only after the stream (no previews while reading); renumbering cited sources to 1..k (numbers would jump when the stream ends).
+- **Rationale:** Provider-independent, stable numbers during and after streaming, and the stored message is clean for reloads and for the conversation history.
+
+## ADR-017: Chat rate limit brought forward
+
+- **Context:** The PRD schedules rate limiting for the hardening phase, but each chat question costs money and the demo account is public from phase 3 on.
+- **Decision:** A small Redis fixed-window limiter (`INCR` + `PEXPIRE NX`) enforces 30 questions per hour per user now, answering 429 with a German message. Studio and audio limits plus the global daily cap follow in the hardening phase with the same service.
+- **Alternatives:** Waiting for phase 6; relying only on the provider spend limit.
+- **Rationale:** The spend limit protects the budget but would turn the demo off for everyone; a per-user limit stops one visitor from using it up.
+
+## ADR-018: Source selection in the client
+
+- **Context:** Users select which sources the chat uses (PRD §2).
+- **Decision:** The selection lives in the browser (`localStorage` per notebook, stored as the list of _deselected_ sources so new sources are selected automatically) and is sent with each question. The API checks that the IDs belong to the notebook and are READY.
+- **Alternatives:** A `selected` column on `Source`.
+- **Rationale:** The selection is a view preference, not data. No extra write per checkbox click, and the server still validates everything it receives.
