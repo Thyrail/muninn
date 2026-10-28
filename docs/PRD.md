@@ -1,15 +1,18 @@
 # PRD – Muninn
 
-*Muninn ist ein Klon von Google NotebookLM. Benannt nach Odins Rabe der Erinnerung.*
+_Muninn ist ein Klon von Google NotebookLM. Benannt nach Odins Rabe der Erinnerung._
 
 ## 1. Ziel
+
 Eine Web-App, in der Nutzer Notebooks anlegen, Quellen hochladen und mit einem KI-Assistenten
 chatten, der ausschließlich auf Basis dieser Quellen antwortet und jede Aussage mit klickbaren
 Zitaten belegt. Dazu ein Studio-Bereich mit generierten Dokumenten und einem Audio-Podcast
 mit zwei Sprechern. Live erreichbar unter `https://muninn.thyrail.de` (per ENV `DOMAIN`) mit Demo-Account.
 
 ## 2. Scope
+
 **Muss (nicht verhandelbar)**
+
 - Auth (Registrierung per ENV-Flag `ALLOW_SIGNUP`, Login, Logout) + geseedeter Demo-Account
 - Notebooks: anlegen, umbenennen, löschen, Übersicht
 - Quellen: PDF-Upload, URL, eingefügter Text; Verarbeitungsstatus live sichtbar; löschen
@@ -19,12 +22,14 @@ mit zwei Sprechern. Live erreichbar unter `https://muninn.thyrail.de` (per ENV `
 - Deployment per Docker auf eigener Domain mit CI/CD
 
 **Soll**
+
 - Audio Overview (Podcast, 2 Sprecher, Deutsch)
 - Studio-Outputs: Briefing-Dokument, FAQ, Lernleitfaden (Markdown mit Zitaten)
 - Automatische Kurz-Zusammenfassung pro Quelle + 3 vorgeschlagene Fragen pro Notebook
 - RAG-Eval-Skript
 
 **Kann (nur wenn Zeit übrig)**
+
 - YouTube-Transkripte als Quelle
 - Notizen: Chat-Antwort als Notiz speichern
 - Mindmap als Studio-Output
@@ -33,12 +38,14 @@ Fällt Zeit weg, wird in dieser Reihenfolge gestrichen: Kann → Mindmap/Lernlei
 Audio Overview. Chat mit Zitaten und Deployment bleiben immer.
 
 ## 3. Architektur
+
 ```
 Browser ──► Traefik (TLS) ──► Host(DOMAIN) && PathPrefix(/api) ──► api (NestJS, Port 4000)
                          └──► Host(DOMAIN)                       ──► web (Next.js, Port 3000)
 api ──► Postgres (pgvector) │ Redis (BullMQ, Rate Limits) │ S3 (Uploads, Audio)
 worker (gleiches Image wie api, Command: node dist/worker.js) ──► dieselben Dienste + LLM-APIs
 ```
+
 - Gleiche Origin für Web und API (Pfad-Routing in Traefik), dadurch keine CORS-Probleme
   und Session-Cookies funktionieren ohne Sonderkonfiguration.
 - Lokal: Next.js `rewrites` leiten `/api/*` an `http://localhost:4000` weiter.
@@ -48,6 +55,7 @@ worker (gleiches Image wie api, Command: node dist/worker.js) ──► dieselbe
   das `useChat` im Frontend direkt konsumiert. Zitat-Metadaten als Message-Metadata/Data-Parts.
 
 ## 4. Datenmodell (Prisma, Richtwert)
+
 - `User`, `Session`, `Account`, `Verification` (Better-Auth-Schema)
 - `Notebook` (id, userId, title, createdAt, updatedAt)
 - `Source` (id, notebookId, type: PDF|URL|TEXT|YOUTUBE, title, originalUrl?, storageKey?,
@@ -63,6 +71,7 @@ per SQL-Migration. Embedding-Dimension ≤ 2000 wählen (HNSW-Limit), z. B. 768 
 `outputDimensionality`, falls das gewählte Gemini-Embedding-Modell das unterstützt.
 
 ## 5. Ingestion-Pipeline (Worker, BullMQ-Queue `ingest`)
+
 1. Upload: Multipart an `POST /api/notebooks/:id/sources` → Datei in S3, `Source` mit
    `PENDING` anlegen, Job einreihen. URL/Text analog ohne Datei.
 2. Extraktion: PDF mit `unpdf` seitenweise (Seitennummern behalten), URL per `fetch` +
@@ -73,9 +82,10 @@ per SQL-Migration. Embedding-Dimension ≤ 2000 wählen (HNSW-Limit), z. B. 768 
 4. Embeddings in Batches, Retry mit Backoff, dann `Chunk`-Zeilen schreiben.
 5. Kurz-Zusammenfassung der Quelle generieren (Soll), Status `READY`.
 6. Fehler: Status `FAILED` + verständliche Fehlermeldung für die UI.
-Status-Updates ans Frontend per Polling (TanStack Query, 2 s solange etwas PROCESSING ist).
+   Status-Updates ans Frontend per Polling (TanStack Query, 2 s solange etwas PROCESSING ist).
 
 ## 6. Retrieval und Chat mit Zitaten
+
 - Hybrid Search: Top 20 per Vektor (cosine) + Top 20 per Volltext (`websearch_to_tsquery`),
   zusammengeführt mit Reciprocal Rank Fusion, finale Top 8.
   Immer gefiltert auf `notebookId` und die ausgewählten Quellen.
@@ -93,6 +103,7 @@ Status-Updates ans Frontend per Polling (TanStack Query, 2 s solange etwas PROCE
   in DECISIONS.md dokumentieren).
 
 ## 7. Studio-Outputs (Queue `studio`)
+
 - Briefing, FAQ, Lernleitfaden: Markdown mit Zitaten im selben Format wie im Chat.
   Bei großen Notebooks Map-Reduce über Quellen-Zusammenfassungen und relevante Chunks.
 - Audio Overview:
@@ -109,6 +120,7 @@ Status-Updates ans Frontend per Polling (TanStack Query, 2 s solange etwas PROCE
   Die Audio Overview heißt im UI „Rabenbericht“ mit Untertitel „Hugin & Munin sprechen über deine Quellen“.
 
 ## 8. Frontend
+
 - Layout wie NotebookLM: links Quellen (Liste, Status, Checkboxen, Hinzufügen-Dialog),
   Mitte Chat, rechts Studio. Mobil: Tabs statt drei Spalten.
 - Seiten: `/login`, `/register` (falls erlaubt), `/` (Notebook-Übersicht als Karten),
@@ -119,7 +131,9 @@ Status-Updates ans Frontend per Polling (TanStack Query, 2 s solange etwas PROCE
   dunkle Grundtöne mit einer Akzentfarbe. Favicon und Open-Graph-Bild passend dazu.
 
 ## 9. Limits, Rate Limiting, Sicherheit
+
 In `packages/shared/limits.ts` zentral definiert und serverseitig durchgesetzt:
+
 - Datei max. 20 MB, nur PDF; Text max. 200.000 Zeichen; max. 10 Quellen pro Notebook;
   max. 10 Notebooks pro User
 - Chat: 30 Nachrichten pro Stunde pro User; Studio: 10 Outputs pro Tag; Audio: 3 pro Tag
@@ -130,6 +144,7 @@ In `packages/shared/limits.ts` zentral definiert und serverseitig durchgesetzt:
 - Demo-Account wird nachts per Cron-Job im Worker zurückgesetzt (Soll)
 
 ## 10. Docker und Deployment
+
 - Dockerfiles: Multi-Stage, Node LTS Alpine (bzw. Debian-slim im Worker wegen ffmpeg),
   `pnpm deploy`/Turbo-Prune für schlanke Images, Non-Root-User, Healthchecks.
 - Images: `ghcr.io/<owner>/muninn-web` und `ghcr.io/<owner>/muninn-api`
@@ -149,6 +164,7 @@ In `packages/shared/limits.ts` zentral definiert und serverseitig durchgesetzt:
   `TTS_MODEL`, `TTS_VOICE_HUGIN`, `TTS_VOICE_MUNIN`, `DAILY_LLM_REQUEST_CAP`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`.
 
 ## 11. Evaluation (`pnpm eval`)
+
 - `scripts/eval/fixtures`: ein bis zwei frei verwendbare Dokumente
 - `scripts/eval/cases.json`: ca. 10 Fragen mit erwarteter Quelle/Seite, davon 2 Fragen,
   die die Quellen nicht beantworten können
@@ -157,23 +173,24 @@ In `packages/shared/limits.ts` zentral definiert und serverseitig durchgesetzt:
 - Ausgabe als Tabelle in der Konsole und als `scripts/eval/results.md`
 
 ## 12. Phasenplan
+
 **Phase 1 – Fundament:** Monorepo, Docker-Dev-Infra, Prisma-Schema + Migrationen inkl.
 pgvector, Better Auth + Login-UI, Seed-Demo-User, Dockerfiles, Compose-Prod, CI und Deploy-
-Workflow. *Fertig, wenn:* Login funktioniert lokal und auf der Live-Domain.
+Workflow. _Fertig, wenn:_ Login funktioniert lokal und auf der Live-Domain.
 
 **Phase 2 – Ingestion:** Notebooks-CRUD, Quellen-Upload (PDF/URL/Text), Worker, Chunking,
-Embeddings, Status in der UI. *Fertig, wenn:* ein PDF live auf READY geht und Chunks mit
+Embeddings, Status in der UI. _Fertig, wenn:_ ein PDF live auf READY geht und Chunks mit
 Seitennummern in der DB stehen. Unit-Tests für den Chunker.
 
 **Phase 3 – Chat:** Hybrid Retrieval, Streaming-Chat, Zitate, Verlauf, Quellenauswahl.
-*Fertig, wenn:* belegte Antworten live gestreamt werden und ungültige Zitate entfernt
+_Fertig, wenn:_ belegte Antworten live gestreamt werden und ungültige Zitate entfernt
 werden. Unit-Tests für den Zitat-Parser.
 
 **Phase 4 – Frontend-Politur:** Drei-Spalten-Layout, Quellen-Viewer mit Hervorhebung,
 Leer-/Lade-/Fehlerzustände, Mobile, Dark Mode.
 
 **Phase 5 – Studio:** Briefing und FAQ, danach Audio Overview.
-*Fertig, wenn:* ein Podcast live generiert und abgespielt werden kann.
+_Fertig, wenn:_ ein Podcast live generiert und abgespielt werden kann.
 
 **Phase 6 – Härtung:** Limits, Rate Limiting, SSRF-Schutz, Prompt-Injection-Härtung,
 Eval-Skript, Demo-Reset.
@@ -183,6 +200,7 @@ Architektur mit Mermaid, Entscheidungen, Eval-Ergebnisse, „Mit mehr Zeit würd
 Hinweis auf die Nutzung von Claude Code inkl. CLAUDE.md/PRD.md).
 
 ## 13. Abgabe-Checkliste
+
 - [ ] Live-URL erreichbar, TLS gültig, Demo-Login funktioniert
 - [ ] Kompletter Flow live getestet: Notebook → PDF → Chat mit Zitaten → Studio → Podcast
 - [ ] Keine Secrets im Repo (auch nicht in der Git-Historie)
