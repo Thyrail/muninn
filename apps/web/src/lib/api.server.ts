@@ -1,5 +1,10 @@
 import 'server-only';
-import { publicConfigSchema, type PublicConfig } from '@muninn/shared';
+import {
+  publicConfigSchema,
+  type NotebookSummary,
+  type PublicConfig,
+  type SourceDto,
+} from '@muninn/shared';
 import { cookies } from 'next/headers';
 
 const API_INTERNAL_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
@@ -32,4 +37,26 @@ export async function getPublicConfig(): Promise<PublicConfig> {
   const response = await fetch(`${API_INTERNAL_URL}/api/config`, { cache: 'no-store' });
   if (!response.ok) throw new Error(`GET /api/config failed with ${response.status}`);
   return publicConfigSchema.parse(await response.json());
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await apiFetch(path);
+  if (!response.ok) throw new Error(`GET /api${path} failed with ${response.status}`);
+  return (await response.json()) as T;
+}
+
+export function getNotebooks(): Promise<NotebookSummary[]> {
+  return getJson('/notebooks');
+}
+
+/** Returns null for unknown or foreign notebooks (the API answers 404 for both). */
+export async function getNotebook(id: string): Promise<NotebookSummary | null> {
+  const response = await apiFetch(`/notebooks/${encodeURIComponent(id)}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`GET /api/notebooks/:id failed with ${response.status}`);
+  return (await response.json()) as NotebookSummary;
+}
+
+export function getSources(notebookId: string): Promise<SourceDto[]> {
+  return getJson(`/notebooks/${encodeURIComponent(notebookId)}/sources`);
 }
