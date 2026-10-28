@@ -2,16 +2,17 @@
  * Frequent German and English function words. The `simple` text search config keeps them,
  * and in an OR query they would match nearly every chunk.
  */
-const STOPWORDS = new Set([
-  'aber', 'als', 'am', 'an', 'auch', 'auf', 'aus', 'bei', 'bin', 'bis', 'das', 'dass', 'dem',
-  'den', 'der', 'des', 'die', 'diese', 'dieser', 'du', 'ein', 'eine', 'einem', 'einen', 'einer',
-  'er', 'es', 'für', 'gibt', 'hat', 'ich', 'ihr', 'im', 'in', 'ist', 'mit', 'nach', 'nicht',
-  'noch', 'oder', 'sich', 'sie', 'sind', 'so', 'über', 'um', 'und', 'von', 'vor', 'was', 'welche',
-  'welcher', 'wer', 'wie', 'wird', 'wo', 'zu', 'zum', 'zur',
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'does', 'for', 'from', 'how', 'in', 'is', 'it',
-  'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'which', 'who',
-  'why', 'with',
-]);
+const STOPWORDS = new Set(
+  [
+    'aber als am an auch auf aus bei bin bis das dass dem den der des die diese dieser du ein',
+    'eine einem einen einer er es für gibt hat ich ihr im in ist mit nach nicht noch oder sich',
+    'sie sind so über um und von vor was welche welcher wer wie wird wo zu zum zur',
+    'a and are as at be by does for from how is it of on or that the this to what when where',
+    'which who why with',
+  ]
+    .join(' ')
+    .split(' '),
+);
 
 const MAX_TERMS = 24;
 

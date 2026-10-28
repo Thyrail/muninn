@@ -14,8 +14,7 @@ const MARKER = /\[\s*(\d+(?:\s*[,;]\s*\d+)*)\s*\](?!\()/g;
 const MARKER_WITH_LEADING_SPACE = new RegExp(`[ \\t]*${MARKER.source}`, 'g');
 
 export type CitationSegment =
-  | { type: 'text'; text: string }
-  | { type: 'citation'; numbers: number[] };
+  { type: 'text'; text: string } | { type: 'citation'; numbers: number[] };
 
 export interface ParsedCitations {
   /** Text with invalid numbers removed; markers are normalized to `[1, 3]`. */
@@ -49,7 +48,8 @@ export function splitCitationSegments(text: string): CitationSegment[] {
   const segments: CitationSegment[] = [];
   let cursor = 0;
   for (const match of text.matchAll(MARKER)) {
-    if (match.index > cursor) segments.push({ type: 'text', text: text.slice(cursor, match.index) });
+    if (match.index > cursor)
+      segments.push({ type: 'text', text: text.slice(cursor, match.index) });
     segments.push({ type: 'citation', numbers: markerNumbers(match[1]!) });
     cursor = match.index + match[0].length;
   }

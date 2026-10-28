@@ -33,11 +33,7 @@ export class RateLimitService implements OnApplicationShutdown {
   async consume(rule: RateLimitRule, userId: string): Promise<void> {
     const window = Math.floor(Date.now() / rule.windowMs);
     const key = `ratelimit:${rule.name}:${userId}:${window}`;
-    const results = await this.redis
-      .multi()
-      .incr(key)
-      .pexpire(key, rule.windowMs, 'NX')
-      .exec();
+    const results = await this.redis.multi().incr(key).pexpire(key, rule.windowMs, 'NX').exec();
     const count = Number(results?.[0]?.[1] ?? 0);
     if (count > rule.limit) {
       throw new HttpException(rule.message, HttpStatus.TOO_MANY_REQUESTS);
