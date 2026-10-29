@@ -153,3 +153,27 @@ made during implementation.
 - **Decision:** `GET /api/notebooks/:id/suggestions` generates three questions with the summary model (Gemini Flash, structured output validated by Zod) from the titles and summaries of READY sources. The result is stored on the notebook together with a SHA-256 key of the sorted READY source IDs. The next request reuses it while the key matches. The web query key contains the same IDs, so a source that finishes or is deleted fetches fresh questions automatically. Errors return an empty list.
 - **Alternatives:** Generating the questions in the worker after each ingestion (races with UI polling, and deletes would need their own job); generating them on every page load.
 - **Rationale:** One cheap model call per change of the source set, no coordination between worker and UI, and the empty chat never shows an error because of an optional feature.
+
+## ADR-022: Claude Sonnet for studio outputs, including the study guide (owner)
+
+- **Context:** Phase 5 adds briefing, FAQ and the audio overview. The study guide is "Soll" too, but it is early on the PRD's cut list.
+- **Decision:** The owner chose Claude Sonnet for studio documents and the podcast script, configured as `STUDIO_MODEL` (falls back to `CHAT_MODEL`). The study guide is built as well, since it is only another prompt on the same pipeline.
+- **Alternatives:** Gemini Flash (under one cent per output, but weaker citations and less natural dialogue); leaving the study guide out.
+- **Rationale:** Studio outputs are generated rarely (10 per day per user) and read closely, so quality matters more than cost (about 5 to 10 cents per output). Citations behave exactly like in the chat.
+
+## ADR-023: Studio context spread evenly over the sources instead of map-reduce
+
+- **Context:** A briefing or podcast should cover all selected sources, not only the passages that match a query. The PRD suggests map-reduce for large notebooks.
+- **Decision:** The worker sends one prompt with up to 40 passages (`LIMITS.studioContextChunks`). The budget is split fairly between the selected sources (a small source leaves its unused share to larger ones), and each source contributes passages spread evenly from its first to its last chunk (`selectStudioChunks`, unit-tested). Source summaries are added as non-citable orientation. Passages are numbered like in the chat, so `parseCitations` and the citation badges work unchanged.
+- **Alternatives:** Map-reduce (one summary call per source, then a combining call); retrieval with a generic query; the first chunks of each source.
+- **Rationale:** With at most 10 sources, 40 passages are about 15k tokens, which fits one call easily. One call is faster, cheaper and simpler than map-reduce, and every citation points to an exact passage.
+
+## ADR-024: Audio overview pipeline
+
+- **Context:** PRD §7: a German two-host podcast of 5 to 8 minutes with Hugin and Munin, Gemini multi-speaker TTS, MP3 via ffmpeg, playable with seeking.
+- **Decision:**
+  1. The studio model writes the script as structured output (`podcastScriptSchema`, Zod: 20 to 80 turns of at most 600 characters). It is stored as JSON in `content`, so the UI shows a transcript and a retry after a TTS failure reuses the script instead of paying for a new one.
+  2. The script is split at turn boundaries into segments of about 3,000 characters. Each segment goes to Gemini TTS (`TTS_MODEL`) through the AI SDK's `generateSpeech`, sequentially. From Gemini 3.8 on, turns are sent as structured speech with speaker and a delivery style per host; older models get a `Name: text` transcript.
+  3. The raw PCM of all segments is concatenated and encoded once with ffmpeg (installed in the API image) to MP3, uploaded to S3, and streamed by `GET /api/studio/:id/audio` with HTTP range support.
+- **Alternatives:** One TTS request for the whole script (long requests are slower and fail as a whole); encoding each segment and concatenating MP3 files (frame gaps); presigned S3 URLs (S3 is only reachable inside the Docker network).
+- **Rationale:** Small requests keep failures cheap and stay within TTS limits. Concatenating PCM produces gapless audio with a single encode. Streaming through the API keeps the ownership check on every request.

@@ -120,6 +120,50 @@ the text into pages, marks the passage and scrolls it into view.
 The empty chat shows three suggested questions from `GET /api/notebooks/:id/suggestions`. They
 are generated lazily and cached per set of READY sources (ADR-021).
 
+## Studio
+
+Studio outputs are created by the worker from the `studio` queue. `POST
+/api/notebooks/:id/studio` checks ownership, the source selection, a running job of the same
+type and the daily limits (10 outputs, 3 audio overviews), then stores a PENDING output and
+enqueues it. The web app polls the list while something is being created.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as api
+  participant Q as Redis (studio)
+  participant K as worker
+  participant DB as Postgres
+  participant C as Claude
+  participant G as Gemini TTS
+  participant S as S3
+
+  A->>DB: StudioOutput PENDING
+  A->>Q: job { outputId, sourceIds }
+  Q->>K: job
+  K->>DB: PROCESSING, load up to 40 passages spread over the sources
+  alt briefing, FAQ, study guide
+    K->>C: numbered sources + task
+    C-->>K: Markdown with [n]
+    K->>DB: READY, cleaned text + cited passages
+  else audio overview
+    K->>C: numbered sources + podcast brief
+    C-->>K: script (JSON, Hugin & Munin)
+    K->>DB: store script
+    loop segments of ~3,000 characters
+      K->>G: multi-speaker TTS
+      G-->>K: PCM
+    end
+    K->>K: ffmpeg: PCM → MP3
+    K->>S: studio/<notebookId>/<id>.mp3
+    K->>DB: READY, duration
+  end
+```
+
+Documents open in place of the studio list, with the same citation badges as the chat, so a
+citation in a briefing opens the source viewer on the left. The audio overview plays inline;
+`GET /api/studio/:id/audio` streams the MP3 with range requests so the player can seek.
+
 ## Key points
 
 - **Same origin.** Traefik routes `/api/*` to NestJS and everything else to Next.js, so cookies
