@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { DemoBadge } from '@/features/notebooks/demo-badge';
 import { NotebookTitle } from '@/features/notebooks/notebook-title';
 import { NotebookWorkspace } from '@/features/notebooks/notebook-workspace';
 import { getChatMessages, getNotebook, getSources } from '@/lib/api.server';
@@ -28,11 +29,21 @@ export default async function NotebookPage({ params }: PageProps<'/notebooks/[id
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <NotebookTitle id={notebook.id} title={notebook.title} />
+        {notebook.protected ? (
+          <>
+            <h1 className="min-w-0 truncate px-1 py-0.5 font-heading text-2xl font-medium tracking-tight">
+              {notebook.title}
+            </h1>
+            <DemoBadge className="shrink-0" />
+          </>
+        ) : (
+          <NotebookTitle id={notebook.id} title={notebook.title} />
+        )}
       </div>
 
       <NotebookWorkspace
         notebookId={notebook.id}
+        isDemo={notebook.protected}
         initialSources={sources}
         initialMessages={messages}
       />

@@ -1,7 +1,9 @@
 import type { Source } from '@muninn/db';
 import type { SourceDetailDto, SourceDto } from '@muninn/shared';
+import { isDemoProtected } from '../notebooks/ownership.js';
 
-export function toSourceDto(source: Source): SourceDto {
+/** `demoSnapshotAt` of the source's notebook; null for normal notebooks. */
+export function toSourceDto(source: Source, demoSnapshotAt: Date | null): SourceDto {
   return {
     id: source.id,
     notebookId: source.notebookId,
@@ -12,13 +14,14 @@ export function toSourceDto(source: Source): SourceDto {
     error: source.error,
     summary: source.summary,
     pageCount: source.pageCount,
+    protected: isDemoProtected(demoSnapshotAt, source.createdAt),
     createdAt: source.createdAt.toISOString(),
   };
 }
 
-export function toSourceDetailDto(source: Source): SourceDetailDto {
+export function toSourceDetailDto(source: Source, demoSnapshotAt: Date | null): SourceDetailDto {
   return {
-    ...toSourceDto(source),
+    ...toSourceDto(source, demoSnapshotAt),
     extractedText: source.status === 'READY' ? source.extractedText : null,
     pageOffsets: source.pageOffsets,
   };

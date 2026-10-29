@@ -13,7 +13,7 @@ import {
 import type { PrismaClient, StudioOutput } from '@muninn/db';
 import { RATE_LIMITS, type CreateStudioOutputInput, type StudioOutputDto } from '@muninn/shared';
 import { API_ENV, type ApiEnv } from '../config/env.js';
-import { findOwnedNotebook } from '../notebooks/ownership.js';
+import { assertNotDemoProtected, findOwnedNotebook } from '../notebooks/ownership.js';
 import { PRISMA } from '../prisma/prisma.module.js';
 import { StudioQueue } from '../queue/studio-queue.js';
 import { DAY_MS, RateLimitService, type RateLimitRule } from '../rate-limit/rate-limit.service.js';
@@ -47,12 +47,12 @@ export class StudioService {
   ) {}
 
   async list(userId: string, notebookId: string): Promise<StudioOutputDto[]> {
-    await findOwnedNotebook(this.prisma, userId, notebookId);
+    const notebook = await findOwnedNotebook(this.prisma, userId, notebookId);
     const outputs = await this.prisma.studioOutput.findMany({
       where: { notebookId, type: { not: 'MINDMAP' } },
       orderBy: { createdAt: 'desc' },
     });
-    return outputs.map(toStudioOutputDto);
+    return outputs.map((output) => toStudioOutputDto(output, notebook.demoSnapshotAt));
   }
 
   async create(
@@ -87,7 +87,7 @@ export class StudioService {
     });
     try {
       await this.queue.enqueue({ outputId: output.id, sourceIds: input.sourceIds });
-      return toStudioOutputDto(output);
+      return toStudioOutputDto(output, null);
     } catch (error) {
       this.logger.error(`Could not enqueue studio output ${output.id}: ${String(error)}`);
       const failed = await this.prisma.studioOutput.update({
@@ -97,12 +97,13 @@ export class StudioService {
           error: 'Die Erstellung konnte nicht gestartet werden. Bitte versuche es erneut.',
         },
       });
-      return toStudioOutputDto(failed);
+      return toStudioOutputDto(failed, null);
     }
   }
 
   async remove(userId: string, outputId: string): Promise<void> {
     const output = await this.findOwned(userId, outputId);
+    assertNotDemoProtected(output.notebook.demoSnapshotAt, output.createdAt);
     await this.prisma.studioOutput.delete({ where: { id: outputId } });
     if (output.audioStorageKey) await this.storage.deleteMany([output.audioStorageKey]);
   }
@@ -124,9 +125,13 @@ export class StudioService {
   }
 
   /** Foreign and unknown IDs both yield 404 (see `findOwnedNotebook`). */
-  private async findOwned(userId: string, outputId: string): Promise<StudioOutput> {
+  private async findOwned(
+    userId: string,
+    outputId: string,
+  ): Promise<StudioOutput & { notebook: { demoSnapshotAt: Date | null } }> {
     const output = await this.prisma.studioOutput.findFirst({
       where: { id: outputId, notebook: { userId } },
+      include: { notebook: { select: { demoSnapshotAt: true } } },
     });
     if (!output) throw new NotFoundException('Ergebnis nicht gefunden.');
     return output;

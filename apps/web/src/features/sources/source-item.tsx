@@ -74,38 +74,40 @@ export function SourceItem({
             {meta && <span className="truncate">{meta}</span>}
           </div>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="-mt-1 -mr-1 size-8 shrink-0 text-muted-foreground"
-              aria-label={`${source.title} entfernen`}
-            >
-              <Trash2Icon />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Quelle entfernen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                „{source.title}“ wird aus dem Notebook gelöscht und steht für Antworten nicht mehr
-                zur Verfügung.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() =>
-                  remove.mutate(source.id, { onError: (error) => toast.error(errorText(error)) })
-                }
+        {!source.protected && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-mt-1 -mr-1 size-8 shrink-0 text-muted-foreground"
+                aria-label={`${source.title} entfernen`}
               >
-                Entfernen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <Trash2Icon />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Quelle entfernen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  „{source.title}“ wird aus dem Notebook gelöscht und steht für Antworten nicht mehr
+                  zur Verfügung.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() =>
+                    remove.mutate(source.id, { onError: (error) => toast.error(errorText(error)) })
+                  }
+                >
+                  Entfernen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {source.status === 'FAILED' && (

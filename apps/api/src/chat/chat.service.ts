@@ -60,8 +60,12 @@ export class ChatService {
   }
 
   async clear(userId: string, notebookId: string): Promise<void> {
-    await findOwnedNotebook(this.prisma, userId, notebookId);
-    await this.prisma.chatMessage.deleteMany({ where: { notebookId } });
+    const notebook = await findOwnedNotebook(this.prisma, userId, notebookId);
+    // In the demo notebook only messages after the snapshot are the visitor's own.
+    const after = notebook.demoSnapshotAt;
+    await this.prisma.chatMessage.deleteMany({
+      where: { notebookId, ...(after && { createdAt: { gt: after } }) },
+    });
   }
 
   /**

@@ -50,6 +50,8 @@ export interface SourceDto {
   error: string | null;
   summary: string | null;
   pageCount: number | null;
+  /** Part of the demo snapshot: cannot be deleted. */
+  protected: boolean;
   createdAt: string;
 }
 

@@ -47,11 +47,14 @@ const STICK_THRESHOLD = 80;
 
 export function ChatPanel({
   notebookId,
+  isDemo,
   sources,
   selectedIds,
   initialMessages,
 }: {
   notebookId: string;
+  /** Demo notebook: clearing removes only the visitor's own messages. */
+  isDemo: boolean;
   sources: SourceDto[];
   selectedIds: string[];
   initialMessages: ChatMessageDto[];
@@ -109,7 +112,11 @@ export function ChatPanel({
   async function clearHistory() {
     try {
       await apiFetch<void>(`/notebooks/${notebookId}/messages`, { method: 'DELETE' });
-      setMessages([]);
+      // The demo notebook keeps its curated history, so reload what the server kept.
+      const kept = isDemo
+        ? await apiFetch<ChatMessageDto[]>(`/notebooks/${notebookId}/messages`)
+        : [];
+      setMessages(kept.map(toUIMessage));
     } catch (failure) {
       toast.error(errorText(failure));
     }
@@ -222,8 +229,9 @@ export function ChatPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Verlauf löschen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Alle Fragen und Antworten in diesem Notebook werden entfernt. Deine Quellen bleiben
-              erhalten.
+              {isDemo
+                ? 'Deine eigenen Fragen und Antworten werden entfernt. Der Beispielverlauf der Demo und die Quellen bleiben erhalten.'
+                : 'Alle Fragen und Antworten in diesem Notebook werden entfernt. Deine Quellen bleiben erhalten.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

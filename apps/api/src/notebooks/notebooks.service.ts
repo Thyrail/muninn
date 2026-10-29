@@ -9,7 +9,7 @@ import {
 } from '@muninn/shared';
 import { PRISMA } from '../prisma/prisma.module.js';
 import { StorageService } from '../storage/storage.service.js';
-import { findOwnedNotebook } from './ownership.js';
+import { assertNotDemoProtected, findOwnedNotebook, isDemoProtected } from './ownership.js';
 
 type NotebookWithCount = Notebook & { _count: { sources: number } };
 
@@ -18,6 +18,7 @@ function toSummary(notebook: NotebookWithCount): NotebookSummary {
     id: notebook.id,
     title: notebook.title,
     sourceCount: notebook._count.sources,
+    protected: isDemoProtected(notebook.demoSnapshotAt, notebook.createdAt),
     createdAt: notebook.createdAt.toISOString(),
     updatedAt: notebook.updatedAt.toISOString(),
   };
@@ -65,7 +66,8 @@ export class NotebooksService {
     notebookId: string,
     input: RenameNotebookInput,
   ): Promise<NotebookSummary> {
-    await findOwnedNotebook(this.prisma, userId, notebookId);
+    const owned = await findOwnedNotebook(this.prisma, userId, notebookId);
+    assertNotDemoProtected(owned.demoSnapshotAt, owned.createdAt);
     const notebook = await this.prisma.notebook.update({
       where: { id: notebookId },
       data: { title: input.title },
@@ -76,7 +78,8 @@ export class NotebooksService {
 
   /** Deletes the notebook (sources, chunks, chat and studio outputs cascade) and its files. */
   async remove(userId: string, notebookId: string): Promise<void> {
-    await findOwnedNotebook(this.prisma, userId, notebookId);
+    const notebook = await findOwnedNotebook(this.prisma, userId, notebookId);
+    assertNotDemoProtected(notebook.demoSnapshotAt, notebook.createdAt);
     const [sources, outputs] = await Promise.all([
       this.prisma.source.findMany({
         where: { notebookId, storageKey: { not: null } },

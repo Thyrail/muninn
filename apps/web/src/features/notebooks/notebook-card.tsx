@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatCount, formatRelative } from '@/lib/format';
 import { DeleteNotebookDialog } from './delete-notebook-dialog';
+import { DemoBadge } from './demo-badge';
 import { RenameNotebookDialog } from './rename-notebook-dialog';
 
 export function NotebookCard({ notebook }: { notebook: NotebookSummary }) {
@@ -30,35 +31,43 @@ export function NotebookCard({ notebook }: { notebook: NotebookSummary }) {
         <h2 className="line-clamp-2 font-heading text-lg leading-snug font-medium">
           {notebook.title}
         </h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative -mt-1 -mr-2 shrink-0"
-              aria-label={`Aktionen für ${notebook.title}`}
-            >
-              <MoreHorizontalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setRenaming(true)}>
-              <PencilIcon />
-              Umbenennen
-            </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
-              <Trash2Icon />
-              Löschen
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {notebook.protected ? (
+          <DemoBadge className="relative shrink-0" />
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative -mt-1 -mr-2 shrink-0"
+                aria-label={`Aktionen für ${notebook.title}`}
+              >
+                <MoreHorizontalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                <PencilIcon />
+                Umbenennen
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+                <Trash2Icon />
+                Löschen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <p className="mt-auto pt-6 text-sm text-muted-foreground">
         {formatCount(notebook.sourceCount, 'Quelle', 'Quellen')} · bearbeitet{' '}
         {formatRelative(notebook.updatedAt)}
       </p>
-      <RenameNotebookDialog notebook={notebook} open={renaming} onOpenChange={setRenaming} />
-      <DeleteNotebookDialog notebook={notebook} open={deleting} onOpenChange={setDeleting} />
+      {!notebook.protected && (
+        <>
+          <RenameNotebookDialog notebook={notebook} open={renaming} onOpenChange={setRenaming} />
+          <DeleteNotebookDialog notebook={notebook} open={deleting} onOpenChange={setDeleting} />
+        </>
+      )}
     </div>
   );
 }

@@ -122,6 +122,9 @@ model Notebook {
   suggestedQuestions String[] @default([])
   /// SHA-256 of the sorted READY source IDs the suggestions were generated for.
   suggestionsKey     String?
+  /// Set on the curated demo notebook: it and everything created up to this moment is protected
+  /// from deletion, and the nightly demo reset removes everything added afterwards.
+  demoSnapshotAt     DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   sources            Source[]

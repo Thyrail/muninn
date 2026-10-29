@@ -31,6 +31,8 @@ export interface StudioOutputDto {
   citations: CitationDto[];
   durationSec: number | null;
   error: string | null;
+  /** Part of the demo snapshot: cannot be deleted. */
+  protected: boolean;
   createdAt: string;
 }
 

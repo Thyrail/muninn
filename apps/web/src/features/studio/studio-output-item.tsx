@@ -71,37 +71,39 @@ export function StudioOutputItem({
         ) : (
           <div className="flex min-w-0 flex-1 items-start gap-2.5">{heading}</div>
         )}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="-mt-0.5 -mr-1 shrink-0 text-muted-foreground"
-              aria-label={`${title} löschen`}
-            >
-              <Trash2Icon />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{title} löschen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Das Ergebnis wird endgültig gelöscht. Du kannst es jederzeit neu erstellen.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() =>
-                  remove.mutate(output.id, { onError: (error) => toast.error(errorText(error)) })
-                }
+        {!output.protected && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="-mt-0.5 -mr-1 shrink-0 text-muted-foreground"
+                aria-label={`${title} löschen`}
               >
-                Löschen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <Trash2Icon />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{title} löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Das Ergebnis wird endgültig gelöscht. Du kannst es jederzeit neu erstellen.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() =>
+                    remove.mutate(output.id, { onError: (error) => toast.error(errorText(error)) })
+                  }
+                >
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {processing && (

@@ -24,6 +24,8 @@ export interface NotebookSummary {
   id: string;
   title: string;
   sourceCount: number;
+  /** Curated demo notebook: cannot be renamed or deleted. */
+  protected: boolean;
   createdAt: string;
   updatedAt: string;
 }

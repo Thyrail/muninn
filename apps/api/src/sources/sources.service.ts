@@ -17,7 +17,11 @@ import {
   type SourceDetailDto,
   type SourceDto,
 } from '@muninn/shared';
-import { findOwnedNotebook, findOwnedSource } from '../notebooks/ownership.js';
+import {
+  assertNotDemoProtected,
+  findOwnedNotebook,
+  findOwnedSource,
+} from '../notebooks/ownership.js';
 import { PRISMA } from '../prisma/prisma.module.js';
 import { IngestQueue } from '../queue/ingest-queue.js';
 import { RateLimitService, type RateLimitRule } from '../rate-limit/rate-limit.service.js';
@@ -59,16 +63,17 @@ export class SourcesService {
   ) {}
 
   async list(userId: string, notebookId: string): Promise<SourceDto[]> {
-    await findOwnedNotebook(this.prisma, userId, notebookId);
+    const notebook = await findOwnedNotebook(this.prisma, userId, notebookId);
     const sources = await this.prisma.source.findMany({
       where: { notebookId },
       orderBy: { createdAt: 'asc' },
     });
-    return sources.map(toSourceDto);
+    return sources.map((source) => toSourceDto(source, notebook.demoSnapshotAt));
   }
 
   async get(userId: string, sourceId: string): Promise<SourceDetailDto> {
-    return toSourceDetailDto(await findOwnedSource(this.prisma, userId, sourceId));
+    const source = await findOwnedSource(this.prisma, userId, sourceId);
+    return toSourceDetailDto(source, source.notebook.demoSnapshotAt);
   }
 
   async addPdf(
@@ -137,11 +142,12 @@ export class SourcesService {
       where: { id: sourceId },
       data: { status: 'PENDING', error: null },
     });
-    return this.startIngestion(reset);
+    return this.startIngestion(reset, source.notebook.demoSnapshotAt);
   }
 
   async remove(userId: string, sourceId: string): Promise<void> {
     const source = await findOwnedSource(this.prisma, userId, sourceId);
+    assertNotDemoProtected(source.notebook.demoSnapshotAt, source.createdAt);
     await this.prisma.source.delete({ where: { id: sourceId } });
     await this.touchNotebook(source.notebookId);
     if (source.storageKey) await this.storage.deleteMany([source.storageKey]);
@@ -165,11 +171,14 @@ export class SourcesService {
   }
 
   /** Queues the source; if Redis is unavailable the source is marked failed so it can be retried. */
-  private async startIngestion(source: Source): Promise<SourceDto> {
+  private async startIngestion(
+    source: Source,
+    demoSnapshotAt: Date | null = null,
+  ): Promise<SourceDto> {
     await this.touchNotebook(source.notebookId);
     try {
       await this.queue.enqueue(source.id);
-      return toSourceDto(source);
+      return toSourceDto(source, demoSnapshotAt);
     } catch (error) {
       this.logger.error(`Could not enqueue source ${source.id}: ${String(error)}`);
       const failed = await this.prisma.source.update({
@@ -179,7 +188,7 @@ export class SourcesService {
           error: 'Die Verarbeitung konnte nicht gestartet werden. Bitte versuche es erneut.',
         },
       });
-      return toSourceDto(failed);
+      return toSourceDto(failed, demoSnapshotAt);
     }
   }
 

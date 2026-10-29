@@ -31,10 +31,12 @@ const GRID_COLUMNS = {
  */
 export function NotebookWorkspace({
   notebookId,
+  isDemo,
   initialSources,
   initialMessages,
 }: {
   notebookId: string;
+  isDemo: boolean;
   initialSources: SourceDto[];
   initialMessages: ChatMessageDto[];
 }) {
@@ -96,6 +98,7 @@ export function NotebookWorkspace({
           <div {...panelProps('chat')}>
             <ChatPanel
               notebookId={notebookId}
+              isDemo={isDemo}
               sources={sources}
               selectedIds={selection.selectedIds}
               initialMessages={initialMessages}
