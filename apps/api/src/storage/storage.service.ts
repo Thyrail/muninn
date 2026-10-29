@@ -7,8 +7,16 @@ import {
   S3Client,
   S3ServiceException,
 } from '@aws-sdk/client-s3';
+import type { Readable } from 'node:stream';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { API_ENV, type ApiEnv } from '../config/env.js';
+
+export interface StoredObjectStream {
+  body: Readable;
+  contentLength: number | undefined;
+  /** Set for range requests, e.g. `bytes 0-1023/52000`. */
+  contentRange: string | undefined;
+}
 
 /** Thin wrapper around an S3-compatible bucket (SeaweedFS locally and in production). */
 @Injectable()
@@ -54,6 +62,19 @@ export class StorageService implements OnModuleInit {
     );
     if (!response.Body) throw new Error(`Object ${key} has no body`);
     return response.Body.transformToByteArray();
+  }
+
+  /** Streams an object, optionally a byte range (`bytes=0-1023`) for seekable media. */
+  async getStream(key: string, range?: string): Promise<StoredObjectStream> {
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: range }),
+    );
+    if (!response.Body) throw new Error(`Object ${key} has no body`);
+    return {
+      body: response.Body as Readable,
+      contentLength: response.ContentLength,
+      contentRange: response.ContentRange,
+    };
   }
 
   /** Best effort: storage cleanup must never fail the user-facing delete. */

@@ -16,6 +16,7 @@ import { QueueModule } from './queue/queue.module.js';
 import { RateLimitModule } from './rate-limit/rate-limit.module.js';
 import { SourcesModule } from './sources/sources.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { StudioModule } from './studio/studio.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { StorageModule } from './storage/storage.module.js';
     NotebooksModule,
     SourcesModule,
     ChatModule,
+    StudioModule,
   ],
   controllers: [HealthController, MeController],
 })
