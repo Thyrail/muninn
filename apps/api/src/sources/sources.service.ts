@@ -11,6 +11,7 @@ import type { PrismaClient, Source } from '@muninn/db';
 import {
   hasPdfSignature,
   LIMITS,
+  RATE_LIMITS,
   MAX_SOURCE_TITLE_LENGTH,
   type CreateSourceInput,
   type SourceDetailDto,
@@ -19,6 +20,7 @@ import {
 import { findOwnedNotebook, findOwnedSource } from '../notebooks/ownership.js';
 import { PRISMA } from '../prisma/prisma.module.js';
 import { IngestQueue } from '../queue/ingest-queue.js';
+import { RateLimitService, type RateLimitRule } from '../rate-limit/rate-limit.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import {
   titleFromFileName,
@@ -38,6 +40,13 @@ export interface UploadedPdf {
 const URL_TITLE_MAX = 120;
 const TEXT_TITLE_MAX = 80;
 
+const SOURCE_RATE_LIMIT: RateLimitRule = {
+  name: 'sources',
+  limit: RATE_LIMITS.sourcesPerHour,
+  windowMs: 60 * 60 * 1000,
+  message: `Du hast das Limit von ${RATE_LIMITS.sourcesPerHour} neuen Quellen pro Stunde erreicht. Bitte versuche es später erneut.`,
+};
+
 @Injectable()
 export class SourcesService {
   private readonly logger = new Logger(SourcesService.name);
@@ -46,6 +55,7 @@ export class SourcesService {
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly storage: StorageService,
     private readonly queue: IngestQueue,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async list(userId: string, notebookId: string): Promise<SourceDto[]> {
@@ -122,6 +132,7 @@ export class SourcesService {
     if (source.status !== 'FAILED') {
       throw new ConflictException('Nur fehlgeschlagene Quellen können erneut verarbeitet werden.');
     }
+    await this.consumeIngestionBudget(userId);
     const reset = await this.prisma.source.update({
       where: { id: sourceId },
       data: { status: 'PENDING', error: null },
@@ -144,6 +155,13 @@ export class SourcesService {
         `Ein Notebook kann höchstens ${LIMITS.maxSourcesPerNotebook} Quellen enthalten.`,
       );
     }
+    await this.consumeIngestionBudget(userId);
+  }
+
+  /** Every ingestion costs embeddings and a summary: per-user limit plus the global budget. */
+  private async consumeIngestionBudget(userId: string): Promise<void> {
+    await this.rateLimit.consume(SOURCE_RATE_LIMIT, userId);
+    await this.rateLimit.consumeLlmBudget();
   }
 
   /** Queues the source; if Redis is unavailable the source is marked failed so it can be retried. */

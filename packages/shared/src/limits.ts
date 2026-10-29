@@ -35,6 +35,8 @@ export const LIMITS = {
 /** Fixed-window rate limits, enforced via Redis. */
 export const RATE_LIMITS = {
   chatMessagesPerHour: 30,
+  /** New or retried sources (embeddings + summary) per user. */
+  sourcesPerHour: 30,
   studioOutputsPerDay: 10,
   audioOverviewsPerDay: 3,
 } as const;

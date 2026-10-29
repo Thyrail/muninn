@@ -16,11 +16,9 @@ import { API_ENV, type ApiEnv } from '../config/env.js';
 import { findOwnedNotebook } from '../notebooks/ownership.js';
 import { PRISMA } from '../prisma/prisma.module.js';
 import { StudioQueue } from '../queue/studio-queue.js';
-import { RateLimitService, type RateLimitRule } from '../rate-limit/rate-limit.service.js';
+import { DAY_MS, RateLimitService, type RateLimitRule } from '../rate-limit/rate-limit.service.js';
 import { StorageService, type StoredObjectStream } from '../storage/storage.service.js';
 import { toStudioOutputDto } from './studio.mapper.js';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const STUDIO_RATE_LIMIT: RateLimitRule = {
   name: 'studio',
@@ -82,6 +80,7 @@ export class StudioService {
 
     await this.rateLimit.consume(STUDIO_RATE_LIMIT, userId);
     if (input.type === 'AUDIO') await this.rateLimit.consume(AUDIO_RATE_LIMIT, userId);
+    await this.rateLimit.consumeLlmBudget();
 
     const output = await this.prisma.studioOutput.create({
       data: { notebookId, type: input.type },

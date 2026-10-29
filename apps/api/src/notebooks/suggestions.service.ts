@@ -4,6 +4,7 @@ import { suggestedQuestionsSchema, type SuggestedQuestionsDto } from '@muninn/sh
 import { generateText, Output } from 'ai';
 import { AiService } from '../ai/ai.service.js';
 import { PRISMA } from '../prisma/prisma.module.js';
+import { RateLimitService } from '../rate-limit/rate-limit.service.js';
 import { findOwnedNotebook } from './ownership.js';
 import {
   buildSuggestionsPrompt,
@@ -16,7 +17,8 @@ import {
 /**
  * Three suggested questions per notebook, generated on request and cached per set of READY
  * sources. Adding, finishing or deleting a source changes the key and yields fresh questions;
- * otherwise no model call happens. Failures return an empty list, never an error.
+ * otherwise no model call happens. Failures and an exhausted daily budget return an empty list,
+ * never an error.
  */
 @Injectable()
 export class SuggestionsService {
@@ -25,6 +27,7 @@ export class SuggestionsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly ai: AiService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async get(userId: string, notebookId: string): Promise<SuggestedQuestionsDto> {
@@ -40,7 +43,7 @@ export class SuggestionsService {
     if (notebook.suggestionsKey === key) return { questions: notebook.suggestedQuestions };
 
     const model = this.ai.summaryModel;
-    if (!model) return { questions: [] };
+    if (!model || !(await this.rateLimit.tryConsumeLlmBudget())) return { questions: [] };
     try {
       const { output } = await generateText({
         model,

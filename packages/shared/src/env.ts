@@ -64,6 +64,9 @@ export const apiEnvSchema = z.object({
   /** Gemini prebuilt voice names (case-sensitive). */
   TTS_VOICE_HUGIN: unsetIfEmpty(z.string().min(1).default('Puck')),
   TTS_VOICE_MUNIN: unsetIfEmpty(z.string().min(1).default('Charon')),
+
+  /** Emergency brake: requests that start model work per day across all users. */
+  DAILY_LLM_REQUEST_CAP: unsetIfEmpty(z.coerce.number().int().positive().default(2000)),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

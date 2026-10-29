@@ -22,6 +22,7 @@ describe('apiEnvSchema', () => {
     expect(env.PORT).toBe(4000);
     expect(env.ALLOW_SIGNUP).toBe(false);
     expect(env.EMBEDDING_DIM).toBe(768);
+    expect(env.DAILY_LLM_REQUEST_CAP).toBe(2000);
     expect(env.NODE_ENV).toBe('development');
   });
 

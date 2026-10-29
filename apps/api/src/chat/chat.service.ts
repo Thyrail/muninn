@@ -84,6 +84,7 @@ export class ChatService {
       throw new BadRequestException('Wähle mindestens eine fertige Quelle aus.');
     }
     await this.rateLimit.consume(CHAT_RATE_LIMIT, userId);
+    await this.rateLimit.consumeLlmBudget();
 
     const history = await this.storeQuestion(notebookId, request.text);
     const chunks = await this.retrieval.retrieve(
