@@ -33,6 +33,12 @@ mit zwei Sprechern. Live erreichbar unter `https://muninn.thyrail.de` (per ENV `
 - YouTube-Transkripte als Quelle
 - Notizen: Chat-Antwort als Notiz speichern
 - Mindmap als Studio-Output
+- Vorlesefunktion (erst nach Phase 5): Chat-Antworten und Studio-Outputs per ElevenLabs vorlesen.
+  `POST /api/tts` mit Nachrichten- bzw. Output-ID; `[n]` und Markdown werden vorher entfernt.
+  Cache in S3 über SHA-256 von Text und Stimme. Limits: max. 5.000 Zeichen pro Text, 20 Vorlesungen
+  pro Tag und User. ENV: `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL`, `ELEVENLABS_VOICE_READER`.
+  Optional `PODCAST_TTS_PROVIDER=gemini|elevenlabs` mit `ELEVENLABS_VOICE_HUGIN`/`ELEVENLABS_VOICE_MUNIN`.
+  UI: Play/Pause an der Nachricht, immer nur ein Audio gleichzeitig.
 
 Fällt Zeit weg, wird in dieser Reihenfolge gestrichen: Kann → Mindmap/Lernleitfaden →
 Audio Overview. Chat mit Zitaten und Deployment bleiben immer.

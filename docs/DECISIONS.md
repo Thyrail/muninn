@@ -132,3 +132,10 @@ made during implementation.
 - **Decision:** The selection lives in the browser (`localStorage` per notebook, stored as the list of _deselected_ sources so new sources are selected automatically) and is sent with each question. The API checks that the IDs belong to the notebook and are READY.
 - **Alternatives:** A `selected` column on `Source`.
 - **Rationale:** The selection is a view preference, not data. No extra write per checkbox click, and the server still validates everything it receives.
+
+## ADR-019: Read-aloud via ElevenLabs as an optional extra (owner)
+
+- **Context:** The owner proposed reading chat answers and studio outputs aloud and already has an ElevenLabs account.
+- **Decision:** The read-aloud feature is added to the PRD as "Kann" and is only built after phase 5. ElevenLabs is used for it; the podcast stays on Gemini multi-speaker TTS, with ElevenLabs as an optional provider via `PODCAST_TTS_PROVIDER`.
+- **Alternatives:** Gemini TTS for read-aloud as well; browser speech synthesis; leaving the feature out.
+- **Rationale:** It is a visible extra, but chat with citations and the podcast have priority. Building it last keeps the scope of the core phases unchanged.
