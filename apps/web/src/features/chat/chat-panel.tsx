@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,7 @@ import {
   toUIMessage,
   type ChatUIMessage,
 } from './messages';
+import { useSuggestedQuestions } from './suggestions';
 
 /** Distance from the bottom (px) within which new content keeps the view pinned. */
 const STICK_THRESHOLD = 80;
@@ -77,6 +79,7 @@ export function ChatPanel({
     });
 
   const busy = status === 'submitted' || status === 'streaming';
+  const suggestions = useSuggestedQuestions(notebookId, sources);
   const [confirmClear, setConfirmClear] = useState(false);
 
   // Keep the newest message in view unless the user scrolled up to read.
@@ -156,7 +159,13 @@ export function ChatPanel({
         aria-busy={busy}
       >
         {messages.length === 0 ? (
-          <EmptyState ready={readyCount > 0} />
+          <EmptyState
+            ready={readyCount > 0}
+            questions={suggestions.data ?? []}
+            loadingQuestions={suggestions.isLoading}
+            disabled={!!disabledReason || busy}
+            onAsk={send}
+          />
         ) : (
           <ol className="mx-auto flex max-w-3xl flex-col gap-5">
             {messages.map((message) => (
@@ -229,9 +238,21 @@ export function ChatPanel({
   );
 }
 
-function EmptyState({ ready }: { ready: boolean }) {
+function EmptyState({
+  ready,
+  questions,
+  loadingQuestions,
+  disabled,
+  onAsk,
+}: {
+  ready: boolean;
+  questions: string[];
+  loadingQuestions: boolean;
+  disabled: boolean;
+  onAsk: (question: string) => void;
+}) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+    <div className="flex min-h-full flex-col items-center justify-center px-2 py-6 text-center sm:px-6">
       <BookOpenTextIcon className="size-8 text-muted-foreground" aria-hidden />
       <p className="mt-4 font-medium">Fragen an deine Quellen</p>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
@@ -239,6 +260,24 @@ function EmptyState({ ready }: { ready: boolean }) {
           ? 'Stell eine Frage. Muninn antwortet nur aus den ausgewählten Quellen und belegt jede Aussage mit einer Fundstelle.'
           : 'Sobald deine Quellen bereit sind, kannst du hier Fragen stellen.'}
       </p>
+      {ready && (loadingQuestions || questions.length > 0) && (
+        <div className="mt-6 flex w-full max-w-md flex-col gap-2" aria-busy={loadingQuestions}>
+          <p className="text-xs text-muted-foreground">Zum Beispiel</p>
+          {loadingQuestions
+            ? Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-10 rounded-lg" />)
+            : questions.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onAsk(question)}
+                  className="rounded-lg border bg-card px-4 py-2.5 text-left text-sm transition-colors hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {question}
+                </button>
+              ))}
+        </div>
+      )}
     </div>
   );
 }
