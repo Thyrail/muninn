@@ -20,5 +20,3 @@ packages/db/src/generated/
 .vscode/*
 !.vscode/extensions.json
 
-# eval output
-scripts/eval/results.md
