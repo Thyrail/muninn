@@ -25,8 +25,8 @@ for (const [network, prefix] of [
   blocked.addSubnet(network, prefix, 'ipv4');
 }
 for (const [network, prefix] of [
-  ['::', 128],
-  ['::1', 128],
+  // Unspecified, loopback and the deprecated IPv4-compatible range (::a.b.c.d).
+  ['::', 96],
   ['64:ff9b::', 96],
   ['100::', 64],
   ['2001:db8::', 32],
@@ -37,13 +37,26 @@ for (const [network, prefix] of [
   blocked.addSubnet(network, prefix, 'ipv6');
 }
 
+/**
+ * The IPv4 address inside an IPv4-mapped IPv6 address, in both spellings: `::ffff:127.0.0.1`
+ * and `::ffff:7f00:1`, which is how `new URL` normalizes `[::ffff:127.0.0.1]`.
+ */
+function mappedIPv4(address: string): string | null {
+  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+  if (dotted) return dotted[1]!;
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(address);
+  if (!hex) return null;
+  const high = Number.parseInt(hex[1]!, 16);
+  const low = Number.parseInt(hex[2]!, 16);
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.');
+}
+
 export function isPrivateAddress(address: string): boolean {
   const version = isIP(address);
   if (version === 4) return blocked.check(address, 'ipv4');
   if (version === 6) {
-    // IPv4-mapped (::ffff:a.b.c.d) addresses are checked as IPv4.
-    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
-    if (mapped) return blocked.check(mapped[1]!, 'ipv4');
+    const mapped = mappedIPv4(address);
+    if (mapped) return blocked.check(mapped, 'ipv4');
     return blocked.check(address, 'ipv6');
   }
   return true;

@@ -31,6 +31,13 @@ describe('fetchHtml', () => {
     'http://[::1]/',
     'http://169.254.169.254/latest/meta-data/',
     'http://10.0.0.5:8080/',
+    // Alternative spellings that the URL parser normalizes to private addresses.
+    'http://[::ffff:127.0.0.1]/',
+    'http://[::ffff:a9fe:a9fe]/latest/meta-data/',
+    'http://2130706433/',
+    'http://0x7f.1/',
+    'http://0/',
+    'http://user:secret@127.0.0.1/',
   ])('refuses private address %s before connecting', async (url) => {
     await expect(fetchHtml(url)).rejects.toThrow(/Sicherheitsgründen/);
   });

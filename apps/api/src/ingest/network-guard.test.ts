@@ -18,15 +18,25 @@ describe('isPrivateAddress', () => {
     'fd00::1',
     '::ffff:127.0.0.1',
     '::ffff:10.0.0.1',
+    // Hex spelling of mapped addresses, as produced by `new URL('http://[::ffff:127.0.0.1]')`.
+    '::ffff:7f00:1',
+    '::ffff:a9fe:a9fe',
+    '::FFFF:C0A8:0101',
+    // Deprecated IPv4-compatible form.
+    '::7f00:1',
     'not-an-ip',
   ])('blocks %s', (address) => {
     expect(isPrivateAddress(address)).toBe(true);
   });
 
-  it.each(['8.8.8.8', '1.1.1.1', '172.32.0.1', '93.184.216.34', '2606:4700::1111'])(
-    'allows public %s',
-    (address) => {
-      expect(isPrivateAddress(address)).toBe(false);
-    },
-  );
+  it.each([
+    '8.8.8.8',
+    '1.1.1.1',
+    '172.32.0.1',
+    '93.184.216.34',
+    '2606:4700::1111',
+    '::ffff:808:808',
+  ])('allows public %s', (address) => {
+    expect(isPrivateAddress(address)).toBe(false);
+  });
 });

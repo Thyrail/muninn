@@ -1,6 +1,6 @@
 import { stripCitations } from '@muninn/shared';
 import type { ModelMessage } from 'ai';
-import { escapeAttribute, neutralizeTag } from '../common/prompt-text.js';
+import { escapeAttribute, neutralizePromptTags } from '../common/prompt-text.js';
 
 export const CHAT_SYSTEM_PROMPT = `Du bist Muninn, ein Recherche-Assistent. Du beantwortest Fragen ausschließlich auf Grundlage der Quellen, die der Nutzer bereitstellt.
 
@@ -28,7 +28,7 @@ export function buildSourcesBlock(chunks: PromptChunk[]): string {
     .map((chunk, index) => {
       const page = chunk.page === null ? '' : ` page="${chunk.page}"`;
       const title = escapeAttribute(chunk.sourceTitle);
-      const content = neutralizeTag(chunk.content, 'source');
+      const content = neutralizePromptTags(chunk.content);
       return `<source id="${index + 1}" title="${title}"${page}>\n${content}\n</source>`;
     })
     .join('\n\n');

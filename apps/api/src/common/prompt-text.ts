@@ -3,10 +3,14 @@ export function escapeAttribute(value: string): string {
   return value.replace(/[<>"&]/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
+/** Every block name the prompts use to fence untrusted content (`source` covers `sources`). */
+const PROMPT_TAGS = /<(\/?\s*(?:source|overview|document))/gi;
+
 /**
- * Neutralizes opening and closing tags named `tag` inside untrusted content, so the content
- * cannot end its surrounding block and pose as instructions (prompt injection).
+ * Neutralizes opening and closing tags of all prompt blocks inside untrusted content, so the
+ * content can neither end its own block nor open a fake one (e.g. a citable `<source>`) and
+ * pose as instructions (prompt injection).
  */
-export function neutralizeTag(content: string, tag: string): string {
-  return content.replace(new RegExp(`<(/?\\s*${tag})`, 'gi'), '&lt;$1');
+export function neutralizePromptTags(content: string): string {
+  return content.replace(PROMPT_TAGS, '&lt;$1');
 }

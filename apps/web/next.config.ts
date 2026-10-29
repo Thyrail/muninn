@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { securityHeaders } from '@muninn/shared';
 import { loadEnvConfig } from '@next/env';
 import type { NextConfig } from 'next';
 
@@ -19,6 +20,10 @@ const nextConfig: NextConfig = {
     // Dev only: the /api rewrite passes uploads through Next (PDFs up to 20 MB). In production
     // Traefik routes /api straight to the API.
     proxyClientMaxBodySize: '25mb',
+  },
+  headers() {
+    const headers = securityHeaders(process.env.NODE_ENV === 'production');
+    return Promise.resolve([{ source: '/:path*', headers }]);
   },
   // In production Traefik routes /api to the API directly (same origin). Locally the Next dev
   // server forwards /api so the browser still only talks to one origin.

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { SUGGESTED_QUESTION_COUNT } from '@muninn/shared';
-import { escapeAttribute, neutralizeTag } from '../common/prompt-text.js';
+import { escapeAttribute, neutralizePromptTags } from '../common/prompt-text.js';
 
 /** Characters of source text used when a source has no summary. */
 export const SUGGESTION_EXCERPT_CHARS = 1500;
@@ -27,7 +27,7 @@ export function buildSuggestionsPrompt(sources: readonly SuggestionSource[]): st
   return sources
     .map(
       (source) =>
-        `<document title="${escapeAttribute(source.title)}">\n${neutralizeTag(source.excerpt, 'document')}\n</document>`,
+        `<document title="${escapeAttribute(source.title)}">\n${neutralizePromptTags(source.excerpt)}\n</document>`,
     )
     .join('\n\n');
 }

@@ -4,5 +4,6 @@ export * from './citations.js';
 export * from './env.js';
 export * from './limits.js';
 export * from './notebooks.js';
+export * from './security-headers.js';
 export * from './sources.js';
 export * from './studio.js';

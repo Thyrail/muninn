@@ -1,5 +1,5 @@
 import { LIMITS, type StudioDocumentType } from '@muninn/shared';
-import { escapeAttribute, neutralizeTag } from '../common/prompt-text.js';
+import { escapeAttribute, neutralizePromptTags } from '../common/prompt-text.js';
 import { buildSourcesBlock, type PromptChunk } from '../chat/prompt.js';
 
 export interface SourceOverview {
@@ -41,7 +41,7 @@ Aufbau:
 function buildOverviewBlock(sources: SourceOverview[]): string {
   const items = sources.map((source) => {
     const summary = source.summary
-      ? neutralizeTag(source.summary, 'overview')
+      ? neutralizePromptTags(source.summary)
       : '(keine Zusammenfassung)';
     return `- ${escapeAttribute(source.title)}: ${summary}`;
   });

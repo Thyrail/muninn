@@ -1,6 +1,8 @@
 import 'reflect-metadata';
+import { securityHeaders } from '@muninn/shared';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
@@ -21,6 +23,11 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const env = app.get<ApiEnv>(API_ENV);
+  const headers = securityHeaders(env.NODE_ENV === 'production');
+  app.use((_request: unknown, response: Response, next: () => void) => {
+    for (const { key, value } of headers) response.setHeader(key, value);
+    next();
+  });
   await app.listen(env.PORT, '0.0.0.0');
 }
 
