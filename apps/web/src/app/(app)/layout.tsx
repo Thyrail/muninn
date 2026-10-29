@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <Providers>
-      <div className="flex min-h-dvh flex-col">
+      <div className="flex h-dvh flex-col">
         <header className="flex items-center justify-between border-b px-6 py-3">
           <Link href="/" aria-label="Zur Übersicht">
             <Wordmark />
@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <UserMenu name={user.name} email={user.email} />
           </div>
         </header>
-        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
       </div>
     </Providers>
   );

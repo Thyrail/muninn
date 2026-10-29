@@ -21,7 +21,7 @@ export default async function NotebookPage({ params }: PageProps<'/notebooks/[id
   const [sources, messages] = await Promise.all([getSources(id), getChatMessages(id)]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col px-4 pt-3 pb-4 sm:px-6">
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="icon" aria-label="Zurück zur Übersicht">
           <Link href="/">

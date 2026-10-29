@@ -26,7 +26,7 @@ export function SourcesPanel({
   const allSelected = readyCount > 0 && selectedCount === readyCount;
 
   return (
-    <section aria-labelledby="sources-heading" className="flex min-h-0 flex-col">
+    <section aria-labelledby="sources-heading" className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 id="sources-heading" className="font-heading text-lg font-medium">
@@ -69,7 +69,7 @@ export function SourcesPanel({
       )}
 
       {sources.length > 0 && (
-        <ul className="mt-3 space-y-2 overflow-y-auto pb-2">
+        <ul className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pb-2">
           {sources.map((source) => (
             <SourceItem
               key={source.id}

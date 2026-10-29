@@ -118,7 +118,7 @@ export function ChatPanel({
   return (
     <section
       aria-labelledby="chat-heading"
-      className="flex h-[calc(100dvh-10.5rem)] min-h-[28rem] flex-col rounded-xl border bg-card/40"
+      className="flex h-full min-h-0 flex-col rounded-xl border bg-card/40"
     >
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <h2 id="chat-heading" className="font-heading text-lg font-medium">
