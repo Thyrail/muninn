@@ -1,14 +1,20 @@
 'use client';
 
-import { type CreateSourceInput, isSourceProcessing, type SourceDto } from '@muninn/shared';
+import {
+  type CreateSourceInput,
+  isSourceProcessing,
+  type SourceDetailDto,
+  type SourceDto,
+} from '@muninn/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, jsonBody } from '@/lib/api-client';
+import { ApiError, apiFetch, jsonBody } from '@/lib/api-client';
 import { notebookKeys } from '../notebooks/queries';
 
 const POLL_INTERVAL_MS = 2_000;
 
 export const sourceKeys = {
   list: (notebookId: string) => ['sources', notebookId] as const,
+  detail: (sourceId: string) => ['source', sourceId] as const,
 };
 
 /** Polls every 2 s while any source is pending or processing (PRD §5). */
@@ -21,6 +27,17 @@ export function useSources(notebookId: string, initialData: SourceDto[]) {
       query.state.data?.some((source) => isSourceProcessing(source.status))
         ? POLL_INTERVAL_MS
         : false,
+  });
+}
+
+/** Source with its extracted text for the viewer. The text never changes once READY. */
+export function useSourceDetail(sourceId: string) {
+  return useQuery({
+    queryKey: sourceKeys.detail(sourceId),
+    queryFn: () => apiFetch<SourceDetailDto>(`/sources/${sourceId}`),
+    staleTime: Infinity,
+    retry: (failureCount, error) =>
+      !(error instanceof ApiError && error.status === 404) && failureCount < 2,
   });
 }
 

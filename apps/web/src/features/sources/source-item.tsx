@@ -1,15 +1,7 @@
 'use client';
 
-import type { SourceDto, SourceType } from '@muninn/shared';
-import {
-  ChevronDownIcon,
-  PlayIcon,
-  FileTextIcon,
-  GlobeIcon,
-  RotateCwIcon,
-  TextIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import type { SourceDto } from '@muninn/shared';
+import { ChevronDownIcon, RotateCwIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -26,25 +18,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { errorText } from '@/lib/api-client';
-import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useDeleteSource, useRetrySource } from './queries';
+import { SOURCE_TYPE_ICONS, sourceMeta } from './source-meta';
 import { SourceStatusBadge } from './source-status';
-
-const TYPE_ICONS: Record<SourceType, typeof FileTextIcon> = {
-  PDF: FileTextIcon,
-  URL: GlobeIcon,
-  TEXT: TextIcon,
-  YOUTUBE: PlayIcon,
-};
-
-function sourceMeta(source: SourceDto): string | null {
-  if (source.type === 'PDF' && source.pageCount) {
-    return formatCount(source.pageCount, 'Seite', 'Seiten');
-  }
-  if (source.type === 'URL' && source.originalUrl) return new URL(source.originalUrl).hostname;
-  return null;
-}
+import { useSourceViewer } from './source-viewer-context';
 
 export function SourceItem({
   source,
@@ -58,7 +36,8 @@ export function SourceItem({
   const [expanded, setExpanded] = useState(false);
   const retry = useRetrySource(source.notebookId);
   const remove = useDeleteSource(source.notebookId);
-  const Icon = TYPE_ICONS[source.type];
+  const viewer = useSourceViewer();
+  const Icon = SOURCE_TYPE_ICONS[source.type];
   const meta = sourceMeta(source);
 
   return (
@@ -75,9 +54,20 @@ export function SourceItem({
           <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium" title={source.title}>
-            {source.title}
-          </p>
+          {source.status === 'READY' && viewer ? (
+            <button
+              type="button"
+              className="block max-w-full truncate rounded-sm text-left text-sm font-medium hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              title={`${source.title} öffnen`}
+              onClick={() => viewer.openSource(source.id)}
+            >
+              {source.title}
+            </button>
+          ) : (
+            <p className="truncate text-sm font-medium" title={source.title}>
+              {source.title}
+            </p>
+          )}
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {source.status === 'READY' && <Icon className="size-3.5 shrink-0" aria-hidden />}
             <SourceStatusBadge status={source.status} />
