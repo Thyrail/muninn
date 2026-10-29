@@ -45,6 +45,8 @@ export const apiEnvSchema = z.object({
 
   DEMO_USER_EMAIL: z.email().optional(),
   DEMO_USER_PASSWORD: z.string().min(8).optional(),
+  /** Cron pattern (Europe/Berlin) for the nightly demo reset. */
+  DEMO_RESET_CRON: unsetIfEmpty(z.string().min(1).default('0 3 * * *')),
 
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
   /** Gemini embedding model ID, e.g. `gemini-embedding-2`. */

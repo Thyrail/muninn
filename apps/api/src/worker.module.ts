@@ -3,6 +3,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AiModule } from './ai/ai.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { API_ENV, type ApiEnv } from './config/env.js';
+import { DemoWorkerModule } from './demo/demo.module.js';
 import { IngestModule } from './ingest/ingest.module.js';
 import { loggerOptions } from './logger.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -22,6 +23,7 @@ import { StudioWorkerModule } from './studio/studio-worker.module.js';
     AiModule,
     IngestModule,
     StudioWorkerModule,
+    DemoWorkerModule,
   ],
 })
 export class WorkerModule {}
