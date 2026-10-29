@@ -10,13 +10,24 @@ import type { TextRange } from '../sources/source-text';
 import { SourceViewer } from '../sources/source-viewer';
 import { SourceViewerContext, type SourceViewerActions } from '../sources/source-viewer-context';
 import { SourcesPanel } from '../sources/sources-panel';
+import { StudioOutputView } from '../studio/studio-output-view';
 import { StudioPanel } from '../studio/studio-panel';
 import { workspacePanelId, WorkspaceTabs, type WorkspaceTab } from './workspace-tabs';
+
+/** Column templates from `lg`: an open source viewer or studio document widens its column. */
+const GRID_COLUMNS = {
+  none: 'lg:grid-cols-[18rem_minmax(0,1fr)_16rem]',
+  source:
+    'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,32rem)_minmax(0,1fr)_16rem]',
+  studio:
+    'lg:grid-cols-[18rem_minmax(0,1fr)_minmax(0,24rem)] xl:grid-cols-[18rem_minmax(0,1fr)_minmax(0,30rem)]',
+  both: 'lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)_minmax(0,20rem)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)_minmax(0,26rem)] 2xl:grid-cols-[minmax(0,32rem)_minmax(0,1fr)_minmax(0,32rem)]',
+} as const;
 
 /**
  * Sources, chat and studio of one notebook. Three columns from `lg`, tabs below; all panels
  * stay mounted on small screens so the chat keeps its state while another tab is shown.
- * The source viewer replaces the source list and widens its column.
+ * The source viewer replaces the source list, an opened studio document the studio list.
  */
 export function NotebookWorkspace({
   notebookId,
@@ -33,6 +44,14 @@ export function NotebookWorkspace({
     initialSources.some((source) => source.status === 'READY') ? 'chat' : 'sources',
   );
   const [viewer, setViewer] = useState<{ sourceId: string; highlight?: TextRange } | null>(null);
+  const [studioOutputId, setStudioOutputId] = useState<string | null>(null);
+  const columns = viewer
+    ? studioOutputId
+      ? GRID_COLUMNS.both
+      : GRID_COLUMNS.source
+    : studioOutputId
+      ? GRID_COLUMNS.studio
+      : GRID_COLUMNS.none;
 
   const viewerActions = useMemo<SourceViewerActions>(
     () => ({
@@ -57,14 +76,7 @@ export function NotebookWorkspace({
   return (
     <SourceViewerContext value={viewerActions}>
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <div
-          className={cn(
-            'grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-5',
-            viewer
-              ? 'lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,32rem)_minmax(0,1fr)_16rem]'
-              : 'lg:grid-cols-[18rem_minmax(0,1fr)_16rem]',
-          )}
-        >
+        <div className={cn('grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-5', columns)}>
           <div {...panelProps('sources')}>
             {viewer ? (
               <SourceViewer
@@ -90,7 +102,19 @@ export function NotebookWorkspace({
             />
           </div>
           <div {...panelProps('studio')}>
-            <StudioPanel />
+            {studioOutputId ? (
+              <StudioOutputView
+                notebookId={notebookId}
+                outputId={studioOutputId}
+                onClose={() => setStudioOutputId(null)}
+              />
+            ) : (
+              <StudioPanel
+                notebookId={notebookId}
+                selectedIds={selection.selectedIds}
+                onOpen={setStudioOutputId}
+              />
+            )}
           </div>
         </div>
         <WorkspaceTabs value={tab} onChange={setTab} className="lg:hidden" />
