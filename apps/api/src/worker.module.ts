@@ -7,6 +7,7 @@ import { IngestModule } from './ingest/ingest.module.js';
 import { loggerOptions } from './logger.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { StudioWorkerModule } from './studio/studio-worker.module.js';
 
 /** Background worker: same configuration and services as the API, no HTTP server. */
 @Module({
@@ -20,6 +21,7 @@ import { StorageModule } from './storage/storage.module.js';
     StorageModule,
     AiModule,
     IngestModule,
+    StudioWorkerModule,
   ],
 })
 export class WorkerModule {}

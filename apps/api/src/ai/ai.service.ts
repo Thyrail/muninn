@@ -1,7 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
 import { Inject, Injectable } from '@nestjs/common';
-import { createProviderRegistry, embedMany, type LanguageModel } from 'ai';
+import { createProviderRegistry, embedMany, type LanguageModel, type SpeechModel } from 'ai';
 import { API_ENV, type ApiEnv } from '../config/env.js';
 
 /** Gemini accepts at most 100 texts per batch embedding request. */
@@ -37,6 +37,20 @@ export class AiService {
 
   get summaryModel(): LanguageModel | null {
     return this.env.SUMMARY_MODEL ? this.languageModel(this.env.SUMMARY_MODEL) : null;
+  }
+
+  /** Studio documents and the podcast script; falls back to the chat model. */
+  get studioModel(): LanguageModel {
+    return this.languageModel(this.env.STUDIO_MODEL ?? this.env.CHAT_MODEL);
+  }
+
+  /** Gemini multi-speaker text-to-speech, or null when the audio overview is disabled. */
+  get speechModel(): SpeechModel | null {
+    return this.env.TTS_MODEL ? this.google.speech(this.env.TTS_MODEL) : null;
+  }
+
+  get podcastVoices(): { hugin: string; munin: string } {
+    return { hugin: this.env.TTS_VOICE_HUGIN, munin: this.env.TTS_VOICE_MUNIN };
   }
 
   embedDocuments(texts: string[]): Promise<number[][]> {

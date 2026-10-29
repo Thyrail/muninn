@@ -36,9 +36,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 RUN ls /out/node_modules/.pnpm/@prisma+engines@*/node_modules/@prisma/engines/schema-engine-debian-openssl-3.0.x
 
 FROM ${NODE_IMAGE} AS runner
-# openssl: Prisma schema engine (migrations). ffmpeg is added with the audio overview.
+# openssl: Prisma schema engine (migrations). ffmpeg: MP3 encoding of the audio overview.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && apt-get install -y --no-install-recommends openssl ca-certificates ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
