@@ -139,3 +139,17 @@ made during implementation.
 - **Decision:** The read-aloud feature is added to the PRD as "Kann" and is only built after phase 5. ElevenLabs is used for it; the podcast stays on Gemini multi-speaker TTS, with ElevenLabs as an optional provider via `PODCAST_TTS_PROVIDER`.
 - **Alternatives:** Gemini TTS for read-aloud as well; browser speech synthesis; leaving the feature out.
 - **Rationale:** It is a visible extra, but chat with citations and the podcast have priority. Building it last keeps the scope of the core phases unchanged.
+
+## ADR-020: Workspace layout and source viewer
+
+- **Context:** PRD §8 asks for the NotebookLM layout (sources, chat, studio), tabs on mobile, and citations that open the passage they refer to.
+- **Decision:** Three columns from `lg` (1024 px) and tabs below. All three panels stay mounted and are only hidden with CSS, so `useChat` state and a running stream survive a tab switch. Clicking a citation opens the source viewer in place of the source list and widens that column. The viewer marks `extractedText.slice(charStart, charEnd)`, split into PDF pages by `pageOffsets` (pure, unit-tested function), and scrolls the mark into view. On mobile it switches to the sources tab. The app shell no longer scrolls the `body`: `main` scrolls, and the notebook page fills the height with one scroll area per column. This also removes the layout jump when a dialog locks scrolling.
+- **Alternatives:** A modal or side sheet for the viewer; Radix tabs that unmount inactive panels; a popover with the passage only (as in phase 3).
+- **Rationale:** The viewer keeps the chat visible next to the source, so the answer and its evidence can be compared directly. Keeping panels mounted avoids losing a half-streamed answer.
+
+## ADR-021: Suggested questions, generated lazily per set of sources (owner)
+
+- **Context:** The PRD lists three suggested questions per notebook as "Soll". The owner decided to build them in phase 4 for the empty chat.
+- **Decision:** `GET /api/notebooks/:id/suggestions` generates three questions with the summary model (Gemini Flash, structured output validated by Zod) from the titles and summaries of READY sources. The result is stored on the notebook together with a SHA-256 key of the sorted READY source IDs. The next request reuses it while the key matches. The web query key contains the same IDs, so a source that finishes or is deleted fetches fresh questions automatically. Errors return an empty list.
+- **Alternatives:** Generating the questions in the worker after each ingestion (races with UI polling, and deletes would need their own job); generating them on every page load.
+- **Rationale:** One cheap model call per change of the source set, no coordination between worker and UI, and the empty chat never shows an error because of an optional feature.

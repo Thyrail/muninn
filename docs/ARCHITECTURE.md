@@ -107,6 +107,19 @@ sequenceDiagram
   A->>DB: store cleaned answer + citations
 ```
 
+## Workspace
+
+The notebook page has three columns (sources, chat, studio) from `lg`, and tabs below. All
+panels stay mounted, so switching tabs never interrupts a streaming answer (ADR-020).
+
+Clicking a citation badge opens its source in the left column instead of the source list:
+`GET /api/sources/:id` returns the extracted text with page offsets. The cited passage is
+`text.slice(charStart, charEnd)`, because the chunker keeps exact offsets. The viewer splits
+the text into pages, marks the passage and scrolls it into view.
+
+The empty chat shows three suggested questions from `GET /api/notebooks/:id/suggestions`. They
+are generated lazily and cached per set of READY sources (ADR-021).
+
 ## Key points
 
 - **Same origin.** Traefik routes `/api/*` to NestJS and everything else to Next.js, so cookies
