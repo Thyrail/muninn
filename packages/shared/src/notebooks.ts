@@ -29,3 +29,14 @@ export interface NotebookSummary {
 }
 
 export type NotebookDetail = NotebookSummary;
+
+export const SUGGESTED_QUESTION_COUNT = 3;
+
+/** Structured LLM output for the suggested questions of a notebook. */
+export const suggestedQuestionsSchema = z.object({
+  questions: z.array(z.string().trim().min(3).max(200)).length(SUGGESTED_QUESTION_COUNT),
+});
+
+export interface SuggestedQuestionsDto {
+  questions: string[];
+}

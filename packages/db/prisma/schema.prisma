@@ -20,13 +20,13 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id            String    @id
+  id            String     @id
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String     @unique
+  emailVerified Boolean    @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   sessions      Session[]
   accounts      Account[]
   notebooks     Notebook[]
@@ -114,16 +114,20 @@ enum StudioOutputType {
 }
 
 model Notebook {
-  id            String         @id @default(uuid(7))
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title         String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  sources       Source[]
-  chunks        Chunk[]
-  messages      ChatMessage[]
-  studioOutputs StudioOutput[]
+  id                 String         @id @default(uuid(7))
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  /// Generated lazily for the current set of READY sources (see `suggestionsKey`).
+  suggestedQuestions String[] @default([])
+  /// SHA-256 of the sorted READY source IDs the suggestions were generated for.
+  suggestionsKey     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  sources            Source[]
+  chunks             Chunk[]
+  messages           ChatMessage[]
+  studioOutputs      StudioOutput[]
 
   @@index([userId, updatedAt])
   @@map("notebook")
@@ -153,11 +157,11 @@ model Source {
 }
 
 model Chunk {
-  id         String                       @id @default(uuid(7))
+  id         String                      @id @default(uuid(7))
   sourceId   String
-  source     Source                       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source     Source                      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   notebookId String
-  notebook   Notebook                     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook   Notebook                    @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   index      Int
   content    String
   page       Int?

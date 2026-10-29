@@ -5,14 +5,19 @@ import {
   type CreateNotebookInput,
   type NotebookSummary,
   type RenameNotebookInput,
+  type SuggestedQuestionsDto,
 } from '@muninn/shared';
 import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { NotebooksService } from './notebooks.service.js';
+import { SuggestionsService } from './suggestions.service.js';
 
 @Controller('notebooks')
 export class NotebooksController {
-  constructor(private readonly notebooks: NotebooksService) {}
+  constructor(
+    private readonly notebooks: NotebooksService,
+    private readonly suggestions: SuggestionsService,
+  ) {}
 
   @Get()
   list(@Session() session: UserSession): Promise<NotebookSummary[]> {
@@ -30,6 +35,14 @@ export class NotebooksController {
   @Get(':id')
   get(@Session() session: UserSession, @Param('id') id: string): Promise<NotebookSummary> {
     return this.notebooks.get(session.user.id, id);
+  }
+
+  @Get(':id/suggestions')
+  suggest(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+  ): Promise<SuggestedQuestionsDto> {
+    return this.suggestions.get(session.user.id, id);
   }
 
   @Patch(':id')
