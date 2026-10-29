@@ -18,6 +18,7 @@
     "db:migrate": "pnpm --filter @muninn/db db:migrate",
     "db:deploy": "pnpm --filter @muninn/db db:deploy",
     "db:seed": "pnpm --filter @muninn/db db:seed",
+    "eval": "pnpm --filter @muninn/eval eval",
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.dev.yml down"
   },

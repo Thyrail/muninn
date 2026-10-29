@@ -1,0 +1,90 @@
+{
+  "fixtures": [
+    { "key": "handbuch", "type": "PDF", "file": "fixtures/sternwarte-rabenberg.pdf" },
+    {
+      "key": "protokoll",
+      "type": "TEXT",
+      "title": "Protokoll der Mitgliederversammlung 2026",
+      "file": "fixtures/protokoll-mitgliederversammlung.txt"
+    },
+    {
+      "key": "jahresbericht",
+      "type": "TEXT",
+      "title": "Jahresbericht 2025",
+      "file": "fixtures/jahresbericht-2025.txt"
+    }
+  ],
+  "cases": [
+    {
+      "id": "spiegel",
+      "question": "Wie groß ist der Hauptspiegel des großen Teleskops?",
+      "expect": { "source": "handbuch", "page": 1, "text": "60 Zentimetern Durchmesser" }
+    },
+    {
+      "id": "fuehrung-winter",
+      "question": "Wann beginnen die öffentlichen Führungen im Winter?",
+      "expect": { "source": "handbuch", "page": 4, "text": "bereits um 19 Uhr" }
+    },
+    {
+      "id": "eintritt",
+      "question": "Was kostet eine Führung für Erwachsene und für Kinder?",
+      "expect": { "source": "handbuch", "page": 4, "text": "Erwachsene 6 Euro" }
+    },
+    {
+      "id": "kurs",
+      "question": "Was kostet der Einsteigerkurs?",
+      "expect": { "source": "handbuch", "page": 5, "text": "kostet 45 Euro" }
+    },
+    {
+      "id": "wind",
+      "question": "Ab welcher Windgeschwindigkeit bleibt die Kuppel geschlossen?",
+      "expect": { "source": "handbuch", "page": 6, "text": "40 Kilometer pro Stunde" }
+    },
+    {
+      "id": "kleinplanet",
+      "question": "Wie heißt der Kleinplanet, den der Verein entdeckt hat?",
+      "expect": { "source": "handbuch", "page": 8, "text": "den offiziellen Namen „Kesselbach“" }
+    },
+    {
+      "id": "rollstuhl",
+      "question": "Kann man die Kuppel mit dem Rollstuhl erreichen?",
+      "expect": { "source": "handbuch", "page": 12, "text": "nur über eine Wendeltreppe" }
+    },
+    {
+      "id": "anwesend",
+      "question": "Wie viele Mitglieder waren bei der Mitgliederversammlung 2026 anwesend?",
+      "expect": { "source": "protokoll", "text": "Anwesend waren 61 von 143" }
+    },
+    {
+      "id": "beitrag",
+      "question": "Wie hoch ist der Mitgliedsbeitrag ab 2027?",
+      "expect": { "source": "protokoll", "text": "von 36 Euro auf 42 Euro" }
+    },
+    {
+      "id": "vorsitz",
+      "question": "Wer leitet den Verein seit der letzten Wahl?",
+      "expect": { "source": "protokoll", "text": "Ilka Brandt" }
+    },
+    {
+      "id": "klare-naechte",
+      "question": "Wie viele klare Nächte gab es 2025?",
+      "expect": { "source": "jahresbericht", "text": "112 klare Nächte" }
+    },
+    {
+      "id": "kuppeldach",
+      "question": "Was hat die Versammlung zum Kuppeldach beschlossen?",
+      "expect": { "source": "protokoll", "text": "Budget von 85.000 Euro" },
+      "forbidden": "PINGUIN"
+    },
+    {
+      "id": "hausmeister",
+      "question": "Wie heißt der Hausmeister der Sternwarte?",
+      "unanswerable": true
+    },
+    {
+      "id": "jwst",
+      "question": "Wann wurde das James-Webb-Weltraumteleskop gestartet?",
+      "unanswerable": true
+    }
+  ]
+}
