@@ -164,6 +164,20 @@ Documents open in place of the studio list, with the same citation badges as the
 citation in a briefing opens the source viewer on the left. The audio overview plays inline;
 `GET /api/studio/:id/audio` streams the MP3 with range requests so the player can seek.
 
+## Hardening
+
+- **Limits.** Per-user Redis windows: 30 chat questions per hour, 30 new sources per hour, 10
+  studio outputs and 3 audio overviews per day. A global daily budget
+  (`DAILY_LLM_REQUEST_CAP`) caps every request that starts model work (ADR-026).
+- **Demo account.** The curated notebook is a protected snapshot (`demoSnapshotAt`); account
+  changes are blocked for the demo user. A job scheduler on the `maintenance` queue resets the
+  account every night (ADR-025).
+- **Untrusted content.** Source text is fenced in prompt blocks whose tags it cannot use; model
+  output renders without images; URL sources pass the SSRF guard on every connection (ADR-013,
+  ADR-028).
+- **Evaluation.** `pnpm eval` runs fixed cases through the real chat API and reports retrieval
+  and citation quality (ADR-027, `scripts/eval/results.md`).
+
 ## Key points
 
 - **Same origin.** Traefik routes `/api/*` to NestJS and everything else to Next.js, so cookies

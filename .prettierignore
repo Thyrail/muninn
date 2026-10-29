@@ -5,6 +5,8 @@ dist
 coverage
 packages/db/src/generated
 packages/db/prisma/migrations
+# Written by `pnpm eval`
+scripts/eval/results.md
 # Briefing documents, kept verbatim
 CLAUDE.md
 docs/PRD.md
