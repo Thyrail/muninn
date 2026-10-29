@@ -25,6 +25,21 @@ describe('apiEnvSchema', () => {
     expect(env.NODE_ENV).toBe('development');
   });
 
+  it('treats empty optional variables as unset', () => {
+    const env = parseEnv(apiEnvSchema, {
+      ...valid,
+      SUMMARY_MODEL: '',
+      STUDIO_MODEL: '',
+      TTS_MODEL: '',
+      TTS_VOICE_HUGIN: '',
+    });
+    expect(env.SUMMARY_MODEL).toBeUndefined();
+    expect(env.STUDIO_MODEL).toBeUndefined();
+    expect(env.TTS_MODEL).toBeUndefined();
+    expect(env.TTS_VOICE_HUGIN).toBe('Puck');
+    expect(env.TTS_VOICE_MUNIN).toBe('Charon');
+  });
+
   it('parses boolean flags from strings', () => {
     expect(parseEnv(apiEnvSchema, { ...valid, ALLOW_SIGNUP: 'true' }).ALLOW_SIGNUP).toBe(true);
     expect(parseEnv(apiEnvSchema, { ...valid, ALLOW_SIGNUP: '0' }).ALLOW_SIGNUP).toBe(false);

@@ -21,6 +21,15 @@ export const LIMITS = {
   chatContextChunks: 8,
   /** Previous messages sent to the model as conversation context. */
   chatHistoryMessages: 6,
+
+  /** Studio: passages sent to the model, spread evenly over the selected sources. */
+  studioContextChunks: 40,
+  /** Audio overview script: number of turns and characters per turn. */
+  podcastMinTurns: 20,
+  podcastMaxTurns: 80,
+  podcastMaxTurnChars: 600,
+  /** Max characters of script per text-to-speech request. */
+  podcastTtsSegmentChars: 3000,
 } as const;
 
 /** Fixed-window rate limits, enforced via Redis. */

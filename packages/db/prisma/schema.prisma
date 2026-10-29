@@ -199,8 +199,10 @@ model StudioOutput {
   notebook        Notebook         @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   type            StudioOutputType
   status          ProcessingStatus @default(PENDING)
-  /// Markdown for documents, JSON for mind maps.
+  /// Markdown for documents, the dialogue script (JSON) for audio overviews.
   content         String?
+  /// Cited passages of a document (`CitationDto[]`), referenced as `[n]` in `content`.
+  citations       Json             @default("[]")
   audioStorageKey String?
   durationSec     Int?
   error           String?

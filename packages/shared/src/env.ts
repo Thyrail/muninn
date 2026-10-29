@@ -13,6 +13,11 @@ export const modelRef = z
     'Expected "<provider>:<model>", e.g. "google:gemini-flash-latest"',
   );
 
+/** Treats an empty variable (`NAME=` in a .env file) as unset, so optionals and defaults apply. */
+function unsetIfEmpty<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => (value === '' ? undefined : value), schema);
+}
+
 const nodeEnv = z.enum(['development', 'test', 'production']).default('development');
 
 /**
@@ -46,11 +51,19 @@ export const apiEnvSchema = z.object({
   EMBEDDING_MODEL: z.string().min(1),
   EMBEDDING_DIM: z.coerce.number().int().positive().max(2000).default(768),
   /** `provider:model` for source summaries, e.g. `google:gemini-flash-latest`. Optional. */
-  SUMMARY_MODEL: modelRef.optional(),
+  SUMMARY_MODEL: unsetIfEmpty(modelRef.optional()),
 
   ANTHROPIC_API_KEY: z.string().min(1),
   /** `provider:model` for chat answers, e.g. `anthropic:claude-sonnet-5-5`. */
   CHAT_MODEL: modelRef,
+  /** `provider:model` for studio documents and the podcast script. Defaults to `CHAT_MODEL`. */
+  STUDIO_MODEL: unsetIfEmpty(modelRef.optional()),
+
+  /** Gemini text-to-speech model ID. Without it the audio overview is disabled. */
+  TTS_MODEL: unsetIfEmpty(z.string().min(1).optional()),
+  /** Gemini prebuilt voice names (case-sensitive). */
+  TTS_VOICE_HUGIN: unsetIfEmpty(z.string().min(1).default('Puck')),
+  TTS_VOICE_MUNIN: unsetIfEmpty(z.string().min(1).default('Charon')),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
