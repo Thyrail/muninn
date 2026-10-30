@@ -25,7 +25,7 @@ flowchart LR
     s3[("S3 (SeaweedFS)<br/>uploads · audio")]
   end
 
-  llm{{"LLM APIs<br/>Claude (chat) · Gemini (embeddings, TTS)"}}
+  llm{{"LLM APIs<br/>Claude (chat, studio) · Gemini (embeddings, summaries, TTS)"}}
 
   browser --> edge
   r_api --> api
@@ -33,7 +33,7 @@ flowchart LR
   web -- "server components<br/>API_INTERNAL_URL + session cookie" --> api
   api --> pg & redis & s3
   api -- "enqueue jobs" --> redis
-  redis -- "ingest · studio" --> worker
+  redis -- "ingest · studio · maintenance" --> worker
   worker --> pg & s3
   api --> llm
   worker --> llm
