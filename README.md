@@ -185,7 +185,8 @@ Open http://localhost:3000 and use the demo login. The audio overview needs `ffm
 
 ## Deployment
 
-A push to `main` runs CI (format, typecheck, lint, tests), builds the `api` and `web` images to
+Work lands on `master`, where every push runs CI (format, typecheck, lint, tests). Deploying is a
+separate step: a push to `release` (`git push origin master:release`) runs CI again, builds the `api` and `web` images to
 GHCR and deploys them to a Hetzner server over SSH with Docker Compose
 ([infra/docker-compose.prod.yml](infra/docker-compose.prod.yml)). A one-shot container applies
 migrations and seeds the demo user before the apps start. Traefik terminates TLS; Postgres, Redis

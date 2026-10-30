@@ -212,3 +212,10 @@ made during implementation.
 - **Decision:** The README is written in English, like `ARCHITECTURE.md` and this log. PRD and CLAUDE.md stay German as the original working documents.
 - **Alternatives:** A German README; an English README with a German summary.
 - **Rationale:** One language for all technical documentation, as usual for a public repository.
+
+## ADR-030: `master` for development, `release` for deployment (owner)
+
+- **Context:** Every push to `main` deployed to production. My other projects use `master` as the default branch and deploy only from a `release` branch.
+- **Decision:** The default branch was renamed from `main` to `master` (history and links preserved by GitHub). CI runs on every push to `master` and on pull requests. `deploy.yml` runs only on pushes to `release` (`git push origin master:release`) and runs CI before building and deploying.
+- **Alternatives:** Deploying from the default branch; tags or GitHub releases as the trigger.
+- **Rationale:** Same workflow as in my other repositories, and a deliberate step between a commit and the live demo, which matters while reviewers are using it.
