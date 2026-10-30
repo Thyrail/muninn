@@ -1,5 +1,7 @@
 # Muninn
 
+![Muninn: answers only from your sources, every claim cited](docs/banner.jpg)
+
 > In Norse mythology, Muninn ("memory") is one of Odin's two ravens. Every morning he and Huginn
 > ("thought") fly across the world, and every evening they return to tell Odin what they have
 > seen.
@@ -218,6 +220,8 @@ working agreement instead of free prompting:
 - Current library APIs were checked against official documentation (Context7) instead of relying
   on model knowledge; model IDs are configuration.
 - Product decisions I made along the way are marked "owner" in the decision log.
+- The raven logo and the illustration of Hugin and Munin were generated with
+  [Recraft](https://www.recraft.ai) and then cut down to the shapes the app needs.
 
 ## Repository
 
