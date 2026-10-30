@@ -28,7 +28,8 @@ The UI is in German. Limits per user: 10 notebooks, 10 sources per notebook, PDF
 
 **Sources**
 
-- PDF upload, URL (fetched server-side behind an SSRF guard) or pasted text
+- PDF upload (also by dropping files onto the sources column), URL (fetched server-side behind
+  an SSRF guard) or pasted text
 - Processing status updates live; each source gets a short AI summary
 - Failed sources show the reason and can be retried
 
