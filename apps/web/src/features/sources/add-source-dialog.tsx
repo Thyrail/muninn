@@ -25,9 +25,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { errorText } from '@/lib/api-client';
 import { formString } from '@/lib/form';
 import { cn } from '@/lib/utils';
-import { useAddPdfSource, useAddSource } from './queries';
+import { MAX_PDF_MB } from './pdf-file';
+import { useUploadPdf } from './pdf-upload';
+import { useAddSource } from './queries';
 
-const MAX_MB = LIMITS.maxFileSizeBytes / 1024 / 1024;
 const numberFormat = new Intl.NumberFormat('de-DE');
 
 export function AddSourceDialog({
@@ -82,31 +83,18 @@ interface FormProps {
 }
 
 function PdfUpload({ notebookId, onDone }: FormProps) {
-  const upload = useAddPdfSource(notebookId);
+  const { upload, isPending } = useUploadPdf(notebookId);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   function submit(file: File | undefined) {
-    if (!file) return;
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('Es werden nur PDF-Dateien unterstützt.');
-      return;
-    }
-    if (file.size > LIMITS.maxFileSizeBytes) {
-      toast.error(`Die Datei ist zu groß. Erlaubt sind höchstens ${MAX_MB} MB.`);
-      return;
-    }
-    upload.mutate(file, {
-      onSuccess: () => {
-        toast.success('PDF hochgeladen. Muninn liest es jetzt.');
-        onDone();
-      },
-      onError: (error) => toast.error(errorText(error)),
-    });
+    if (file) upload(file, onDone);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
+    // Keeps the drop from also reaching the sources column behind the dialog.
+    event.stopPropagation();
     setDragging(false);
     submit(event.dataTransfer.files[0]);
   }
@@ -126,16 +114,16 @@ function PdfUpload({ notebookId, onDone }: FormProps) {
     >
       <FileUpIcon className="size-7 text-muted-foreground" aria-hidden />
       <p className="mt-3 text-sm font-medium">PDF hierher ziehen</p>
-      <p className="mt-1 text-xs text-muted-foreground">Bis {MAX_MB} MB, mit Textebene</p>
+      <p className="mt-1 text-xs text-muted-foreground">Bis {MAX_PDF_MB} MB, mit Textebene</p>
       <Button
         type="button"
         variant="outline"
         size="sm"
         className="mt-4"
-        disabled={upload.isPending}
+        disabled={isPending}
         onClick={() => inputRef.current?.click()}
       >
-        {upload.isPending ? 'Wird hochgeladen …' : 'Datei auswählen'}
+        {isPending ? 'Wird hochgeladen …' : 'Datei auswählen'}
       </Button>
       <input
         ref={inputRef}
