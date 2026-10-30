@@ -207,8 +207,8 @@ Hinweis auf die Nutzung von Claude Code inkl. CLAUDE.md/PRD.md).
 
 ## 13. Abgabe-Checkliste
 
-- [ ] Live-URL erreichbar, TLS gültig, Demo-Login funktioniert
-- [ ] Kompletter Flow live getestet: Notebook → PDF → Chat mit Zitaten → Studio → Podcast
-- [ ] Keine Secrets im Repo (auch nicht in der Git-Historie)
-- [ ] CI grün, README vollständig, DECISIONS.md gepflegt
-- [ ] Repo öffentlich (oder Zugriff für die Firma freigegeben)
+- [x] Live-URL erreichbar, TLS gültig, Demo-Login funktioniert
+- [x] Kompletter Flow live getestet: Notebook → PDF → Chat mit Zitaten → Studio → Podcast
+- [x] Keine Secrets im Repo (auch nicht in der Git-Historie)
+- [x] CI grün, README vollständig, DECISIONS.md gepflegt
+- [x] Repo öffentlich (oder Zugriff für die Firma freigegeben)

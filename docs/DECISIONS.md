@@ -205,3 +205,10 @@ made during implementation.
 - **Decision:** `MessageContent` drops images (`disallowedElements`), links open in a new tab with `noopener noreferrer nofollow`. All prompt builders neutralize every block tag (`source`, `overview`, `document`) in untrusted text through one helper, covered by a test that runs an attack text through each builder; previously summaries in the studio overview could pose as a citable `<source>`. Next.js and the API send the same headers from `@muninn/shared`: `nosniff`, a strict referrer policy, `frame-ancestors 'self'`, a restrictive permissions policy and HSTS in production. The SSRF guard additionally blocks the deprecated IPv4-compatible IPv6 range (`::7f00:1`), with tests for other spellings of private addresses (hex-mapped IPv6, decimal and hex IPv4).
 - **Alternatives:** A full script CSP with nonces (Next.js needs per-request nonces and dynamic rendering for it); an allow-list of image hosts.
 - **Rationale:** These close the realistic exfiltration path with little code and no new dependency. A script CSP adds more risk of breaking the app than it removes here; it is noted for later.
+
+## ADR-029: English README (owner)
+
+- **Context:** The UI is German, while code, comments, commits and the other docs are English. The README is the first page reviewers see.
+- **Decision:** The README is written in English, like `ARCHITECTURE.md` and this log. PRD and CLAUDE.md stay German as the original working documents.
+- **Alternatives:** A German README; an English README with a German summary.
+- **Rationale:** One language for all technical documentation, as usual for a public repository.
